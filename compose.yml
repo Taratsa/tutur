@@ -1,0 +1,25 @@
+name: tutur
+
+services:
+  api:
+    build:
+      context: .
+    image: tutur:local
+    command: ["bun", "api/src/index.js"]
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "const r = await fetch(`http://127.0.0.1:$${process.env.PORT}/health`); if (!r.ok) throw new Error(String(r.status));",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped

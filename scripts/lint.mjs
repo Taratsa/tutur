@@ -8,17 +8,12 @@ async function collect(directory) {
     const path = join(directory, item.name);
     if (item.isDirectory()) {
       if (!["node_modules", "dist", ".astro"].includes(item.name)) await collect(path);
-    } else if (
-      /\.(js|mjs|ts|astro|svelte)$/u.test(item.name) &&
-      !path.endsWith("/scripts/lint.mjs")
-    ) {
+    } else if (/\.(js|mjs|ts)$/u.test(item.name) && !path.endsWith("/scripts/lint.mjs")) {
       files.push(path);
     }
   }
 }
-await Promise.all(
-  ["shared", "api", "ui", "scripts"].map((directory) => collect(join(root, directory))),
-);
+await Promise.all(["shared", "api", "scripts"].map((directory) => collect(join(root, directory))));
 
 const violations = [];
 for (const file of files) {

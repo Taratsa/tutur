@@ -1,0 +1,22 @@
+.git
+.github
+.DS_Store
+**/node_modules
+bun.lockb
+build/
+api/data
+data-raw
+
+# Hanya sumber JSON tiap dataset yang dipakai ulang saat build database
+antonim/*
+!antonim/dictionary_antonim__JSON.json
+baku-nonbaku/*
+!baku-nonbaku/dictionary_baku_nonbaku__JSON.json
+edisi-IV/*
+!edisi-IV/dictionary__JSON.json
+sinonim/*
+!sinonim/dictionary_sinonim__JSON.json
+
+Dockerfile
+compose.yml
+.dockerignore

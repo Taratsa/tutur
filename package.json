@@ -5,7 +5,6 @@
   "type": "module",
   "workspaces": [
     "shared",
-    "ui",
     "api"
   ],
   "scripts": {
@@ -14,23 +13,13 @@
     "api:build": "bun run --cwd api build",
     "api:benchmark": "bun run --cwd api benchmark",
     "api:test": "bun run --cwd api test",
-    "ui:build": "bun run --cwd ui build",
-    "ui:check": "bun run --cwd ui check",
     "build": "bun scripts/build-all.mjs",
-    "validate": "bun scripts/validate-output.mjs",
-    "validate:ssr": "bun scripts/validate-ssr.mjs",
     "lint": "bun scripts/lint.mjs",
-    "format:check": "prettier --check package.json .prettierrc.json 'shared/**/*.js' 'api/**/*.js' 'ui/**/*.{astro,svelte,js,css}' ui/astro.config.mjs 'scripts/**/*.mjs' 'README.md' '.github/**/*.yml'",
-    "test": "bun test shared/test api/test ui/test",
+    "format:check": "prettier --check package.json .prettierrc.json 'shared/**/*.js' 'api/**/*.js' 'scripts/**/*.mjs' 'README.md' '.github/**/*.yml'",
+    "test": "bun test shared/test api/test",
     "clean": "bun scripts/clean-generated.mjs"
   },
   "devDependencies": {
-    "@astrojs/check": "0.9.10",
-    "astro": "7.3.1",
-    "prettier": "3.9.6",
-    "prettier-plugin-astro": "0.14.1",
-    "prettier-plugin-svelte": "4.1.1",
-    "svelte": "5.57.0",
-    "typescript": "6.0.3"
+    "prettier": "3.9.6"
   }
 }

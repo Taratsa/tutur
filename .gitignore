@@ -11,16 +11,12 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-### Bun / Astro / generated data
+### Bun / generated data
 node_modules/
 **/node_modules/
 bun.lockb
 build/
-ui/dist/
-ui/.astro/
 api/data/*.sqlite
-ui/data/*.sqlite
-ui/public/data/
 .DS_Store
 
 ### Dataset format exports: keep only JSON source + README per dataset
