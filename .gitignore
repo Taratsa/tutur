@@ -1,0 +1,39 @@
+### Windows
+# Windows thumbnail cache files
+Thumbs.db
+
+# Folder config file
+[Dd]esktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows shortcuts
+*.lnk
+
+### Bun / Astro / generated data
+node_modules/
+**/node_modules/
+bun.lockb
+build/
+ui/dist/
+ui/.astro/
+api/data/*.sqlite
+ui/data/*.sqlite
+ui/public/data/
+.DS_Store
+
+### Dataset format exports: keep only JSON source + README per dataset
+data-raw/
+antonim/*
+!antonim/README.md
+!antonim/dictionary_antonim__JSON.json
+baku-nonbaku/*
+!baku-nonbaku/README.md
+!baku-nonbaku/dictionary_baku_nonbaku__JSON.json
+edisi-IV/*
+!edisi-IV/README.md
+!edisi-IV/dictionary__JSON.json
+sinonim/*
+!sinonim/README.md
+!sinonim/dictionary_sinonim__JSON.json

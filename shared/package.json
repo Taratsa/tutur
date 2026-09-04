@@ -1,0 +1,13 @@
+{
+  "name": "@tutur/shared",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    "./normalization": "./src/normalization.js",
+    "./slug": "./src/slug.js",
+    "./sanitize": "./src/sanitize.js",
+    "./grouping": "./src/grouping.js",
+    "./sitemap": "./src/sitemap.js"
+  }
+}

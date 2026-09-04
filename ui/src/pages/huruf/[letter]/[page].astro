@@ -1,0 +1,66 @@
+---
+import AlphabetPage from "../../../components/AlphabetPage.astro";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { getAvailableLetters, getLetterPage } from "../../../lib/server-data.js";
+import { sitePath } from "../../../lib/site.js";
+
+export const prerender = false;
+
+const requestedLetter = Astro.params.letter ?? "";
+const letter = requestedLetter.toLocaleLowerCase("id-ID");
+const rawPage = Astro.params.page ?? "";
+const pageNumber = Number.parseInt(rawPage, 10);
+if (pageNumber === 1 && rawPage === "1") return Astro.redirect(sitePath(`/huruf/${letter}/`), 308);
+const pageData =
+  /^\d+$/u.test(rawPage) && String(pageNumber) === rawPage && pageNumber > 1
+    ? getLetterPage(letter, pageNumber)
+    : null;
+if (pageData && requestedLetter !== pageData.letter)
+  return Astro.redirect(sitePath(`/huruf/${pageData.letter}/${pageNumber}/`), 308);
+if (!pageData || pageData.totalPages === 0 || pageData.entries.length === 0)
+  Astro.response.status = 404;
+const availableLetters = getAvailableLetters();
+const label = pageData
+  ? pageData.letter === "0-9"
+    ? "angka"
+    : pageData.letter === "lainnya"
+      ? "simbol dan Unicode"
+      : pageData.letter.toUpperCase()
+  : "huruf";
+Astro.response.headers.set(
+  "Cache-Control",
+  "public, max-age=300, s-maxage=86400, stale-while-revalidate=86400",
+);
+---
+
+<BaseLayout
+  title={pageData
+    ? `Kata berawalan ${label}, halaman ${pageData.page} | KBBI Data Explorer`
+    : "Daftar kata tidak ditemukan | KBBI Data Explorer"}
+  description={pageData
+    ? `Daftar kata Bahasa Indonesia berawalan ${label}, halaman ${pageData.page}.`
+    : "Daftar kata yang diminta tidak ditemukan."}
+  robots={pageData ? "index, follow" : "noindex, follow"}
+  canonicalPath={pageData ? `/huruf/${pageData.letter}/${pageData.page}/` : "/404/"}
+  currentPath={pageData ? `/huruf/${pageData.letter}/${pageData.page}/` : "/"}
+>
+  {
+    pageData ? (
+      <AlphabetPage pageData={pageData} availableLetters={availableLetters} />
+    ) : (
+      <section class="not-found section-wrap">
+        <>
+          <p class="eyebrow">
+            <span />
+            404
+          </p>
+          <h1>Daftar kata tidak ditemukan.</h1>
+          <p>Huruf atau halaman yang diminta tidak tersedia.</p>
+          <a class="primary-button" href={sitePath("/")}>
+            Kembali ke beranda
+          </a>
+        </>
+      </section>
+    )
+  }
+</BaseLayout>

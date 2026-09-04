@@ -1,0 +1,43 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PageHero from "../components/PageHero.astro";
+import { repositoryUrl } from "../lib/site.js";
+
+export const prerender = true;
+---
+
+<BaseLayout
+  title="Tentang Proyek | KBBI Explorer"
+  description="Sumber data, kepemilikan, dan batasan KBBI Data Explorer."
+  canonicalPath="/about/"
+  currentPath="/about/"
+>
+  <PageHero
+    eyebrow="Proyek"
+    title="Tentang data"
+    description="Cara data disimpan, ditampilkan, dan digunakan."
+  />
+  <section class="section-wrap about-grid">
+    <article>
+      <span>01</span><h2>Format</h2><p>JSON, SQL, CSV, XML, HTML, Markdown, dan format lain.</p>
+    </article><article>
+      <span>02</span><h2>URL kata</h2><p>
+        Setiap headword unik memiliki URL permanen. Definisi tersedia di HTML awal.
+      </p>
+    </article><article>
+      <span>03</span><h2>Hak penggunaan</h2><p>
+        Data kamus dimiliki oleh Badan Pengembangan dan Pembinaan Bahasa. Penggunaan komersial
+        mengikuti ketentuan hak cipta.
+      </p>
+    </article>
+  </section>
+  <section class="section-wrap source-panel">
+    <div>
+      <p class="eyebrow"><span></span>Repositori</p><h2>Sumber dan kode</h2><p>
+        Lihat schema, jalankan API, atau usulkan perubahan di GitHub.
+      </p>
+    </div><a class="primary-button" href={repositoryUrl} target="_blank" rel="noreferrer"
+      >Buka GitHub ↗</a
+    >
+  </section>
+</BaseLayout>
