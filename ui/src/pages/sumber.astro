@@ -1,0 +1,81 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PageHero from "../components/PageHero.astro";
+
+export const prerender = true;
+
+const sources = [
+  { name: "KBBI Daring · Badan Bahasa (resmi)", url: "https://kbbi.kemdikbud.go.id/" },
+  { name: "Ican Bachors · KBBI.sql", url: "https://github.com/bachors/KBBI.sql" },
+  {
+    name: "ManaSiWibi · KBBI-SQL-database",
+    url: "https://github.com/ManaSiWibi/KBBI-SQL-database",
+  },
+  {
+    name: "aryakdaniswara · kbbi-v6-full-csv",
+    url: "https://github.com/aryakdaniswara/kbbi-v6-full-csv",
+  },
+  {
+    name: "aryakdaniswara · kbbi-v6-categories",
+    url: "https://github.com/aryakdaniswara/kbbi-v6-categories",
+  },
+  {
+    name: "aryakdaniswara · kbbi-v6-wordlist",
+    url: "https://github.com/aryakdaniswara/kbbi-v6-wordlist",
+  },
+  {
+    name: "aryakdaniswara · kbbi-dataset-kbbi-v",
+    url: "https://github.com/aryakdaniswara/kbbi-dataset-kbbi-v",
+  },
+  { name: "Definisi · kbbi (snapshot KBBI VI)", url: "https://github.com/Definisi/kbbi" },
+  { name: "univzy · re:KBBI VI", url: "https://github.com/univzy/kbbi" },
+  {
+    name: "Lyon28 · Kamus Besar Bahasa Indonesia (Hugging Face)",
+    url: "https://huggingface.co/datasets/Lyon28/kamus-besar-bahasa-indonesia",
+  },
+  { name: "raf555 · KBBI-api", url: "https://github.com/raf555/kbbi-api" },
+  {
+    name: "IndoLeX · Frekuensi leksikal (Kaggle)",
+    url: "https://www.kaggle.com/datasets/binhashem/indolex-indonesian-academic-lexical-dataset",
+  },
+  {
+    name: "nasalsabila · kamus-alay",
+    url: "https://github.com/nasalsabila/kamus-alay",
+  },
+];
+---
+
+<BaseLayout
+  title="Sumber Data | Tutur"
+  description="Repositori publik yang menjadi rujukan dataset kamus Tutur."
+  canonicalPath="/sumber/"
+  currentPath="/sumber/"
+>
+  <PageHero
+    eyebrow="Data"
+    title="Sumber data"
+    description="Data dihimpun dari beberapa repositori publik. Sebagian data relasi diperkaya dengan AI."
+  />
+  <section class="section-wrap sources-section sources-page" aria-label="Daftar sumber data">
+    <div class="source-list">
+      {
+        sources.map((source, index) => (
+          <a href={source.url} target="_blank" rel="noreferrer">
+            <>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <strong>{source.name}</strong>
+              <span aria-hidden="true">↗</span>
+            </>
+          </a>
+        ))
+      }
+      <div class="ai-source">
+        <span>AI</span><p>
+          <strong>Data relasi</strong><small
+            >Baku & Nonbaku, Sinonim, dan Antonim diperkaya dengan AI.</small
+          >
+        </p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

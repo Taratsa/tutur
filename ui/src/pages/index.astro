@@ -1,0 +1,132 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Icon from "../lib/Icon.svelte";
+import SearchIsland from "../components/SearchIsland.svelte";
+import { loadSiteData } from "../lib/build-data.js";
+import { sitePath } from "../lib/site.js";
+
+export const prerender = true;
+
+const data = await loadSiteData();
+const formatNumber = (value: number) => new Intl.NumberFormat("id-ID").format(value ?? 0);
+const collections = [
+  {
+    route: "/huruf/a/",
+    icon: "book",
+    title: "Kamus Utama",
+    text: "Definisi kata dari KBBI Edisi IV.",
+    count: data.stats.dictionaryRecords,
+  },
+  {
+    route: "/search/?type=baku",
+    icon: "check",
+    title: "Baku & Nonbaku",
+    text: "Bentuk baku dan nonbaku.",
+    count: data.stats.bakuRecords,
+  },
+  {
+    route: "/search/?type=sinonim",
+    icon: "link",
+    title: "Sinonim",
+    text: "Kata dengan makna yang mirip.",
+    count: data.stats.sinonimRecords,
+  },
+  {
+    route: "/search/?type=antonim",
+    icon: "swap",
+    title: "Antonim",
+    text: "Kata dengan makna berlawanan.",
+    count: data.stats.antonimRecords,
+  },
+  {
+    route: "/search/?type=slang",
+    icon: "comment",
+    title: "Slang",
+    text: "Bentuk santai dan bentuk bakunya.",
+    count: data.stats.slangRecords,
+  },
+  {
+    route: "/populer/",
+    icon: "trend",
+    title: "Kata Populer",
+    text: "Kata yang paling sering dipakai.",
+    count: data.stats.enrichedWords,
+  },
+];
+---
+
+<BaseLayout
+  title="Tutur — Kamus Bahasa Indonesia"
+  description="Cari arti, kata baku, sinonim, dan antonim Bahasa Indonesia. Bukan layanan resmi KBBI."
+  canonicalPath="/"
+>
+  <section class="home-hero">
+    <div class="home-copy">
+      <p class="eyebrow"><span></span>Dataset terbuka · Bukan layanan resmi</p>
+      <h1>Cari arti kata.</h1>
+      <p>Cari arti, kata baku, sinonim, dan antonim Bahasa Indonesia.</p>
+    </div>
+  </section>
+
+  <SearchIsland client:load compact />
+
+  <section class="stats" aria-label="Statistik dataset">
+    {
+      collections.slice(0, 4).map((item) => (
+        <div>
+          <>
+            <strong>{formatNumber(item.count)}</strong>
+            <span>{item.title}</span>
+          </>
+        </div>
+      ))
+    }
+  </section>
+
+  <section class="section-wrap home-collections">
+    <header class="section-heading">
+      <p class="eyebrow"><span></span>Data</p><h2>Koleksi data</h2>
+    </header>
+    <div class="collection-grid">
+      {
+        collections.map((item, index) => (
+          <a
+            class:list={["collection-card", index === 0 && "featured"]}
+            href={sitePath(item.route)}
+          >
+            <span class="icon-badge">
+              <Icon name={item.icon} size={24} />
+            </span>
+            <span>
+              <>
+                <small>{String(index + 1).padStart(2, "0")}</small>
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+                <b>{formatNumber(item.count)} entri</b>
+              </>
+            </span>
+            <Icon name="arrow" />
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section-wrap data-notice" aria-labelledby="data-ownership-title">
+    <div class="notice-heading">
+      <p class="eyebrow"><span></span>Hak data</p><h2 id="data-ownership-title">
+        Periksa sumber dan ketentuannya.
+      </h2>
+    </div><div class="notice-content">
+      <p>
+        Seluruh data kamus dimiliki oleh <strong
+          >Badan Pengembangan dan Pembinaan Bahasa, Kementerian Pendidikan Dasar dan Menengah
+          Republik Indonesia</strong
+        >.
+      </p><p>
+        Penggunaan komersial mengikuti Undang-Undang Republik Indonesia Nomor 28 Tahun 2014 tentang
+        Hak Cipta.
+      </p>
+    </div>
+  </section>
+</BaseLayout>

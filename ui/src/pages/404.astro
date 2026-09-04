@@ -1,0 +1,19 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { sitePath } from "../lib/site.js";
+
+export const prerender = true;
+---
+
+<BaseLayout
+  title="Halaman tidak ditemukan | Tutur"
+  description="Halaman yang diminta tidak ditemukan."
+  robots="noindex, follow"
+  canonicalPath="/404/"
+>
+  <section class="section-wrap not-found">
+    <p class="eyebrow"><span></span>404</p><h1>Halaman tidak ada.</h1><p>
+      Periksa alamat atau buka daftar kata.
+    </p><a class="primary-button" href={sitePath("/huruf/a/")}>Daftar kata ↗</a>
+  </section>
+</BaseLayout>

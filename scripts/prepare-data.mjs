@@ -10,14 +10,21 @@ const sourcePaths = {
   baku: new URL("baku-nonbaku/dictionary_baku_nonbaku__JSON.json", root),
   sinonim: new URL("sinonim/dictionary_sinonim__JSON.json", root),
   antonim: new URL("antonim/dictionary_antonim__JSON.json", root),
+  enrichment: new URL("indolex/kbbi_edisi_iv_enrichment__JSON.json", root),
+  indolex: new URL("indolex/indolex__JSON.json", root),
+  alay: new URL("kamus-alay/dictionary_kamus_alay__JSON.json", root),
+  v6: new URL("kbbi-v6/kbbi_v6__JSON.json", root),
 };
 const outputDirectory = new URL("../build/data/", import.meta.url);
 
+const FAMILY_MEMBER_LIMIT = 40;
+const EXTRAS_LIMITS = { examples: 12, derivations: 30, compounds: 40, proverbs: 12, idioms: 12 };
+
 async function readCollection(url, key) {
   const parsed = await Bun.file(url).json();
-  const collection = parsed[key];
+  const collection = key ? parsed[key] : parsed;
   if (!Array.isArray(collection)) {
-    throw new TypeError(`Expected an array at ${url.pathname}#${key}`);
+    throw new TypeError(`Expected an array at ${url.pathname}${key ? `#${key}` : ""}`);
   }
   return collection;
 }
@@ -26,6 +33,12 @@ function sourceId(record, index) {
   return Number.isInteger(record?.id) || Number.isInteger(record?._id)
     ? (record.id ?? record._id)
     : index + 1;
+}
+
+function cleanText(value) {
+  return String(value ?? "")
+    .replace(/\s+/gu, " ")
+    .trim();
 }
 
 function normalizeRelation(record, index, kind) {
@@ -49,6 +62,26 @@ function normalizeRelation(record, index, kind) {
     usageB: String(record.penggunaan_b ?? "").trim(),
     clue: record.clue == null ? null : String(record.clue).trim(),
     note: record.catatan == null ? null : String(record.catatan).trim(),
+  };
+}
+
+function normalizeSlangRelation(record, index) {
+  const slang = displayWord(record.slang);
+  const formal = displayWord(record.formal);
+  if (!normalizeWord(slang) || !normalizeWord(formal)) {
+    throw new Error(`Invalid slang relation at index ${index}`);
+  }
+  const categories = (Array.isArray(record.categories) ? record.categories : [])
+    .map((item) => cleanText(item))
+    .filter(Boolean);
+  return {
+    id: sourceId(record, index),
+    slang,
+    normalizedSlang: normalizeWord(slang),
+    formal,
+    normalizedFormal: normalizeWord(formal),
+    inDictionary: Boolean(record.in_dictionary),
+    categories,
   };
 }
 
@@ -104,6 +137,137 @@ function buildRelated(entries, relations, slugMap) {
   );
 }
 
+function buildEnrichmentIndex(records) {
+  const enrichmentByWord = new Map();
+  for (const record of records) {
+    const key = normalizeWord(record?.word);
+    if (!key || enrichmentByWord.has(key)) continue;
+    enrichmentByWord.set(key, {
+      frequency: Number(record.frequency ?? 0),
+      root: cleanText(record.root),
+      rootRank: Number.isInteger(record.root_rank) ? record.root_rank : null,
+      rootFrequency: Number.isInteger(record.root_frequency) ? record.root_frequency : null,
+    });
+  }
+  return enrichmentByWord;
+}
+
+function buildFormsByRoot(records) {
+  const formsByRoot = new Map();
+  for (const record of records) {
+    const normalizedRoot = normalizeWord(record?.root);
+    const normalizedForm = normalizeWord(record?.word);
+    if (!normalizedRoot || !normalizedForm) continue;
+    let bucket = formsByRoot.get(normalizedRoot);
+    if (!bucket) {
+      bucket = new Map();
+      formsByRoot.set(normalizedRoot, bucket);
+    }
+    const frequency = Number(record.frequency ?? 0);
+    const existing = bucket.get(normalizedForm);
+    if (!existing || frequency > existing.frequency) {
+      bucket.set(normalizedForm, {
+        word: displayWord(record.word),
+        normalized: normalizedForm,
+        frequency,
+      });
+    }
+  }
+  return formsByRoot;
+}
+
+function buildFamilies(formsByRoot, slugMap) {
+  const families = [];
+  for (const [normalizedRoot, bucket] of formsByRoot) {
+    const rootSlug = slugMap.get(normalizedRoot);
+    if (!rootSlug) continue;
+    const members = [...bucket.values()]
+      .filter((member) => member.normalized !== normalizedRoot)
+      .sort(
+        (left, right) =>
+          right.frequency - left.frequency || left.word.localeCompare(right.word, "id"),
+      )
+      .slice(0, FAMILY_MEMBER_LIMIT)
+      .map((member) => ({
+        text: member.word,
+        slug: slugMap.get(member.normalized) ?? null,
+        frequency: member.frequency,
+      }));
+    if (members.length) families.push({ root: normalizedRoot, rootSlug, members });
+  }
+  return families.sort((left, right) =>
+    left.root < right.root ? -1 : left.root > right.root ? 1 : 0,
+  );
+}
+
+function createExtras() {
+  return {
+    pronunciation: "",
+    etymology: "",
+    examples: new Set(),
+    derivations: new Set(),
+    compounds: new Set(),
+    proverbs: new Set(),
+    idioms: new Set(),
+  };
+}
+
+function absorbExtras(extras, record) {
+  if (!extras.pronunciation) extras.pronunciation = cleanText(record.pelafalan);
+  if (!extras.etymology) extras.etymology = cleanText(record.etimologi);
+  const absorb = (key, values) => {
+    if (!Array.isArray(values)) return;
+    for (const value of values) {
+      const text = cleanText(value);
+      if (text) extras[key].add(text);
+    }
+  };
+  absorb("examples", record.contoh);
+  absorb("derivations", record.turunan);
+  absorb("compounds", record.gabungan_kata);
+  absorb("proverbs", record.peribahasa);
+  absorb("idioms", record.kiasan);
+}
+
+function finalizeExtras(extras, slugMap) {
+  const toList = (values, limit, withSlug) => {
+    const output = [];
+    for (const text of values) {
+      output.push(
+        withSlug ? { text, slug: slugMap.get(normalizeWord(text)) ?? null } : { text, slug: null },
+      );
+      if (output.length >= limit) break;
+    }
+    return output;
+  };
+  return {
+    pronunciation: extras.pronunciation || null,
+    etymology: extras.etymology || null,
+    examples: toList(extras.examples, EXTRAS_LIMITS.examples, false),
+    derivations: toList(extras.derivations, EXTRAS_LIMITS.derivations, true),
+    compounds: toList(extras.compounds, EXTRAS_LIMITS.compounds, true),
+    proverbs: toList(extras.proverbs, EXTRAS_LIMITS.proverbs, false),
+    idioms: toList(extras.idioms, EXTRAS_LIMITS.idioms, false),
+  };
+}
+
+function buildV6Extras(records, slugMap) {
+  const extrasByWord = new Map();
+  for (const record of records) {
+    const normalizedWord = normalizeWord(record?.kata);
+    if (!normalizedWord) continue;
+    let extras = extrasByWord.get(normalizedWord);
+    if (!extras) {
+      extras = createExtras();
+      extrasByWord.set(normalizedWord, extras);
+    }
+    absorbExtras(extras, record);
+  }
+  return new Map(
+    [...extrasByWord].map(([word, extras]) => [word, finalizeExtras(extras, slugMap)]),
+  );
+}
+
 function makeDefinition(record) {
   const html = sanitizeDefinition(record.arti);
   const text = definitionToText(html);
@@ -112,11 +276,24 @@ function makeDefinition(record) {
 }
 
 async function main() {
-  const [rawDictionary, rawBaku, rawSinonim, rawAntonim] = await Promise.all([
+  const [
+    rawDictionary,
+    rawBaku,
+    rawSinonim,
+    rawAntonim,
+    rawEnrichment,
+    rawIndolex,
+    rawAlay,
+    rawV6,
+  ] = await Promise.all([
     readCollection(sourcePaths.dictionary, "dictionary"),
     readCollection(sourcePaths.baku, "quiz_baku"),
     readCollection(sourcePaths.sinonim, "dictionary_sinonim"),
     readCollection(sourcePaths.antonim, "dictionary_antonim"),
+    readCollection(sourcePaths.enrichment, "dictionary_enrichment"),
+    readCollection(sourcePaths.indolex, "indolex"),
+    readCollection(sourcePaths.alay, "dictionary_kamus_alay"),
+    readCollection(sourcePaths.v6, null),
   ]);
 
   const groups = groupDictionaryRecords(
@@ -127,17 +304,30 @@ async function main() {
     baku: rawBaku.map((record, index) => normalizeRelation(record, index, "baku")),
     sinonim: rawSinonim.map((record, index) => normalizeRelation(record, index, "sinonim")),
     antonim: rawAntonim.map((record, index) => normalizeRelation(record, index, "antonim")),
+    slang: rawAlay.map((record, index) => normalizeSlangRelation(record, index)),
   };
+  const enrichmentByWord = buildEnrichmentIndex(rawEnrichment);
+  const formsByRoot = buildFormsByRoot(rawIndolex);
+  const families = buildFamilies(formsByRoot, slugData.wordToSlug);
+  const extrasByWord = buildV6Extras(rawV6, slugData.wordToSlug);
 
-  const entries = groups.map((group) => ({
-    id: group.records[0]._id,
-    word: group.word,
-    normalizedWord: group.normalizedWord,
-    slug: slugData.wordToSlug.get(group.normalizedWord),
-    letter: wordLetter(group.normalizedWord),
-    tokenText: tokenText(group.normalizedWord),
-    definitions: group.records.map(makeDefinition),
-  }));
+  const entries = groups.map((group) => {
+    const enrichment = enrichmentByWord.get(group.normalizedWord) ?? null;
+    return {
+      id: group.records[0]._id,
+      word: group.word,
+      normalizedWord: group.normalizedWord,
+      slug: slugData.wordToSlug.get(group.normalizedWord),
+      letter: wordLetter(group.normalizedWord),
+      tokenText: tokenText(group.normalizedWord),
+      definitions: group.records.map(makeDefinition),
+      frequency: enrichment?.frequency ?? null,
+      root: enrichment?.root || null,
+      rootRank: enrichment?.rootRank ?? null,
+      rootFrequency: enrichment?.rootFrequency ?? null,
+      extras: extrasByWord.get(group.normalizedWord) ?? null,
+    };
+  });
   const related = buildRelated(entries, relations, slugData.wordToSlug);
   for (const entry of entries) entry.related = related.get(entry.normalizedWord) ?? [];
 
@@ -145,7 +335,7 @@ async function main() {
   for (const entry of entries) (letters[entry.letter] ??= []).push(entry.slug);
 
   const data = {
-    version: 1,
+    version: 2,
     stats: {
       dictionaryRecords: rawDictionary.length,
       uniqueHeadwords: entries.length,
@@ -153,11 +343,17 @@ async function main() {
       bakuRecords: relations.baku.length,
       sinonimRecords: relations.sinonim.length,
       antonimRecords: relations.antonim.length,
+      slangRecords: relations.slang.length,
       slugCollisionCount: slugData.collisionCount,
+      enrichedWords: entries.filter((entry) => entry.frequency != null).length,
+      extrasEntries: entries.filter((entry) => entry.extras).length,
+      familyRoots: families.length,
+      familyMembers: families.reduce((sum, family) => sum + family.members.length, 0),
     },
     entries,
     letters,
     relations,
+    families,
   };
   const wordMap = {
     normalizedToSlug: Object.fromEntries(slugData.wordToSlug),

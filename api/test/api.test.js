@@ -5,18 +5,55 @@ import { createApp } from "../src/app.js";
 import { buildDatabase } from "../src/database.js";
 
 const fixture = {
-  stats: { dictionaryRecords: 3, uniqueHeadwords: 2, slugCollisionCount: 0 },
+  stats: {
+    dictionaryRecords: 3,
+    uniqueHeadwords: 3,
+    slugCollisionCount: 0,
+    bakuRecords: 1,
+    sinonimRecords: 1,
+    antonimRecords: 1,
+    slangRecords: 1,
+    enrichedWords: 1,
+    extrasEntries: 1,
+    familyRoots: 1,
+    familyMembers: 1,
+  },
   entries: [
     {
       id: 1,
+      word: "sakola",
+      normalizedWord: "sakola",
+      slug: "sakola",
+      letter: "s",
+      definitions: [{ id: 3, type: 1, html: "<b>sakola</b>", text: "sistem pendidikan" }],
+      frequency: null,
+      root: null,
+      rootRank: null,
+      extras: null,
+    },
+    {
+      id: 2,
       word: "bahasa",
       normalizedWord: "bahasa",
       slug: "bahasa",
       letter: "b",
       definitions: [{ id: 1, type: 1, html: "<b>bahasa</b>", text: "sistem lambang bunyi" }],
+      frequency: 477569,
+      root: "bahasa",
+      rootRank: 9,
+      rootFrequency: 500000,
+      extras: {
+        pronunciation: null,
+        etymology: null,
+        examples: [{ text: "sebuah -- yang kaya", slug: null }],
+        derivations: [{ text: "berbahasa", slug: null }],
+        compounds: [],
+        proverbs: [],
+        idioms: [],
+      },
     },
     {
-      id: 2,
+      id: 3,
       word: "bahasa-baku",
       normalizedWord: "bahasa-baku",
       slug: "bahasa-baku",
@@ -24,6 +61,10 @@ const fixture = {
       definitions: [
         { id: 2, type: 1, html: "<b>bahasa-baku</b>", text: "bahasa yang sesuai kaidah" },
       ],
+      frequency: 12,
+      root: null,
+      rootRank: null,
+      extras: null,
     },
   ],
   relations: {
@@ -67,7 +108,25 @@ const fixture = {
         note: null,
       },
     ],
+    slang: [
+      {
+        id: 1,
+        slang: "bhasa",
+        normalizedSlang: "bhasa",
+        formal: "bahasa",
+        normalizedFormal: "bahasa",
+        inDictionary: true,
+        categories: ["abreviasi"],
+      },
+    ],
   },
+  families: [
+    {
+      root: "bahasa",
+      rootSlug: "bahasa",
+      members: [{ text: "berbahasa", slug: null, frequency: 999 }],
+    },
+  ],
 };
 
 let db;
@@ -87,8 +146,14 @@ function setup(env = { RATE_LIMIT_PER_MINUTE: "120", CORS_ORIGIN: "http://localh
 
 test("exact, prefix, and relation searches return canonical URLs", async () => {
   setup();
-  expect(db.query("SELECT COUNT(*) AS count FROM entries").get().count).toBe(2);
-  expect(db.query("SELECT COUNT(*) AS count FROM definitions").get().count).toBe(2);
+  expect(db.query("SELECT COUNT(*) AS count FROM entries").get().count).toBe(3);
+  expect(db.query("SELECT COUNT(*) AS count FROM definitions").get().count).toBe(3);
+  expect(db.query("SELECT frequency FROM entries WHERE slug = 'bahasa'").get().frequency).toBe(
+    477569,
+  );
+  expect(db.query("SELECT COUNT(*) AS count FROM entry_extras").get().count).toBe(1);
+  expect(db.query("SELECT COUNT(*) AS count FROM word_families").get().count).toBe(1);
+  expect(db.query("SELECT COUNT(*) AS count FROM slang_relations").get().count).toBe(1);
   const exact = await app.request("http://localhost/api/search?q=bahasa&limit=20");
   expect(exact.status).toBe(200);
   const exactJson = await exact.json();
@@ -109,6 +174,28 @@ test("exact, prefix, and relation searches return canonical URLs", async () => {
     word: "praktik",
     counterpart: "praktek",
   });
+});
+
+test("slang queries map to their formal entries", async () => {
+  setup();
+  const slang = await app.request("http://localhost/api/search?q=bhasa&type=slang");
+  expect(slang.status).toBe(200);
+  expect((await slang.json()).results[0]).toMatchObject({
+    type: "slang",
+    word: "bhasa",
+    counterpart: "bahasa",
+    url: "/kata/bahasa/",
+  });
+  const all = await app.request("http://localhost/api/search?q=bhasa");
+  expect((await all.json()).results[0].type).toBe("slang");
+});
+
+test("equal-rank results are ordered by corpus frequency", async () => {
+  setup();
+  const ranked = await app.request("http://localhost/api/search?q=sistem");
+  const results = (await ranked.json()).results;
+  expect(results[0]).toMatchObject({ type: "dictionary", slug: "bahasa" });
+  expect(results[0].slug).not.toBe("sakola");
 });
 
 test("whole-token and FTS substring paths preserve ranking", async () => {

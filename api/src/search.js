@@ -1,8 +1,8 @@
 import { characterCount, normalizeWord, tokenText } from "@tutur/shared/normalization";
 
-export const SEARCH_TYPES = ["all", "dictionary", "baku", "sinonim", "antonim"];
+export const SEARCH_TYPES = ["all", "dictionary", "baku", "sinonim", "antonim", "slang"];
 export const MAX_LIMIT = 50;
-const COLLECTION_ORDER = { dictionary: 0, baku: 1, sinonim: 2, antonim: 3 };
+const COLLECTION_ORDER = { dictionary: 0, baku: 1, sinonim: 2, antonim: 3, slang: 4 };
 
 export function validateSearchParams({ q, type = "all", limit = "20" }) {
   const normalized = normalizeWord(q);
@@ -21,7 +21,7 @@ export class SearchInputError extends Error {}
 
 function scopeFor(type) {
   return type === "all"
-    ? "collection IN ('dictionary', 'baku', 'sinonim', 'antonim')"
+    ? "collection IN ('dictionary', 'baku', 'sinonim', 'antonim', 'slang')"
     : "collection = ?";
 }
 
@@ -62,14 +62,14 @@ export function createSearcher(db) {
     const results = new Map();
     const exact = db
       .query(
-        `SELECT id, collection, word, secondary_word, summary, slug, url FROM search_entries WHERE ${scope} AND (normalized_word = ? OR normalized_secondary = ?) ORDER BY CASE WHEN normalized_word = ? THEN 0 ELSE 1 END, id LIMIT ?`,
+        `SELECT id, collection, word, secondary_word, summary, slug, url, frequency FROM search_entries WHERE ${scope} AND (normalized_word = ? OR normalized_secondary = ?) ORDER BY CASE WHEN normalized_word = ? THEN 0 ELSE 1 END, id LIMIT ?`,
       )
       .all(...scopeArgs, query, query, query, limit);
     for (const row of exact) addResult(results, row, 0);
 
     const prefix = db
       .query(
-        `SELECT id, collection, word, secondary_word, summary, slug, url FROM search_entries WHERE ${scope} AND (normalized_word GLOB ? OR normalized_secondary GLOB ?) ORDER BY id LIMIT ?`,
+        `SELECT id, collection, word, secondary_word, summary, slug, url, frequency FROM search_entries WHERE ${scope} AND (normalized_word GLOB ? OR normalized_secondary GLOB ?) ORDER BY id LIMIT ?`,
       )
       .all(...scopeArgs, `${escapeGlob(query)}*`, `${escapeGlob(query)}*`, limit * 3);
     for (const row of prefix) addResult(results, row, 1);
@@ -82,7 +82,7 @@ export function createSearcher(db) {
     if (tokenQuery) {
       const wholeToken = db
         .query(
-          `SELECT se.id, se.collection, se.word, se.secondary_word, se.summary, se.slug, se.url FROM search_tokens AS f JOIN search_entries AS se ON se.id = f.search_id WHERE ${scope.replaceAll("collection", "se.collection")} AND f.search_tokens MATCH ? ORDER BY f.rank, se.id LIMIT ?`,
+          `SELECT se.id, se.collection, se.word, se.secondary_word, se.summary, se.slug, se.url, se.frequency FROM search_tokens AS f JOIN search_entries AS se ON se.id = f.search_id WHERE ${scope.replaceAll("collection", "se.collection")} AND f.search_tokens MATCH ? ORDER BY f.rank, se.id LIMIT ?`,
         )
         .all(...scopeArgs, tokenQuery, limit * 3);
       for (const row of wholeToken) addResult(results, row, 2);
@@ -102,7 +102,7 @@ export function createSearcher(db) {
                 .join(" ");
         const fts = db
           .query(
-            `SELECT se.id, se.collection, se.word, se.secondary_word, se.summary, se.slug, se.url FROM search_fts AS f JOIN search_entries AS se ON se.id = f.search_id WHERE ${scope.replaceAll("collection", "se.collection")} AND f.search_fts MATCH ? ORDER BY f.rank, se.id LIMIT ?`,
+            `SELECT se.id, se.collection, se.word, se.secondary_word, se.summary, se.slug, se.url, se.frequency FROM search_fts AS f JOIN search_entries AS se ON se.id = f.search_id WHERE ${scope.replaceAll("collection", "se.collection")} AND f.search_fts MATCH ? ORDER BY f.rank, se.id LIMIT ?`,
           )
           .all(...scopeArgs, ftsQuery, limit * 3);
         for (const row of fts) addResult(results, row, 3);
@@ -112,7 +112,7 @@ export function createSearcher(db) {
     } else {
       const shortQuery = db
         .query(
-          `SELECT id, collection, word, secondary_word, summary, slug, url FROM search_entries WHERE ${scope} AND search_text LIKE ? ESCAPE '\\' ORDER BY id LIMIT ?`,
+          `SELECT id, collection, word, secondary_word, summary, slug, url, frequency FROM search_entries WHERE ${scope} AND search_text LIKE ? ESCAPE '\\' ORDER BY id LIMIT ?`,
         )
         .all(...scopeArgs, `%${escapeLike(query)}%`, limit * 2);
       for (const row of shortQuery) addResult(results, row, 3);
@@ -123,6 +123,7 @@ export function createSearcher(db) {
         (left, right) =>
           left.rank - right.rank ||
           COLLECTION_ORDER[left.collection] - COLLECTION_ORDER[right.collection] ||
+          right.frequency - left.frequency ||
           left.id - right.id,
       )
       .slice(0, limit)

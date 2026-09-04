@@ -11,12 +11,16 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-### Bun / generated data
+### Bun / Astro / generated data
 node_modules/
 **/node_modules/
 bun.lockb
 build/
+ui/dist/
+ui/.astro/
 api/data/*.sqlite
+ui/data/*.sqlite
+ui/public/data/
 .DS_Store
 
 ### Dataset format exports: keep only JSON source + README per dataset
@@ -33,3 +37,14 @@ edisi-IV/*
 sinonim/*
 !sinonim/README.md
 !sinonim/dictionary_sinonim__JSON.json
+indolex/*
+!indolex/README.md
+!indolex/indolex__JSON.json
+!indolex/indolex_root_frequencies__JSON.json
+!indolex/kbbi_edisi_iv_enrichment__JSON.json
+kamus-alay/*
+!kamus-alay/README.md
+!kamus-alay/dictionary_kamus_alay__JSON.json
+kbbi-v6/*
+!kbbi-v6/README.md
+!kbbi-v6/kbbi_v6__JSON.json

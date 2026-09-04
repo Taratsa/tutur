@@ -1,0 +1,65 @@
+name: Build Astro SSR UI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ssr-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Restore Bun cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+      - run: bun install --frozen-lockfile
+      - name: Require the search API URL
+        if: ${{ vars.SEARCH_API_URL == '' }}
+        run: |
+          echo "Set the SEARCH_API_URL repository variable before building the UI."
+          exit 1
+      - name: Require the public site URL
+        if: ${{ vars.SITE_URL == '' }}
+        run: |
+          echo "Set the SITE_URL repository variable before building the SSR UI."
+          exit 1
+      - run: bun run lint
+      - run: bun run format:check
+      - run: bun test shared/test api/test ui/test
+      - name: Restore Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('bun.lock') }}
+      - run: bunx playwright install --with-deps chromium
+      - run: bun run ui:check
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+      - run: bun run build
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          BASE_PATH: ${{ vars.BASE_PATH || '/' }}
+          PUBLIC_SEARCH_API_URL: ${{ vars.SEARCH_API_URL }}
+          UI_DATABASE_PATH: ../api/data/search.sqlite
+      - name: Upload SSR release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: astro-ssr-release
+          path: |
+            ui/dist
+            api/data/search.sqlite
+          if-no-files-found: error

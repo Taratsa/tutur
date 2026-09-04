@@ -1,0 +1,13 @@
+---
+import { repositoryUrl, sitePath } from "../lib/site.js";
+---
+
+<footer class="site-footer">
+  <a class="brand footer-brand" href={sitePath("/")}>
+    <img src={sitePath("/favicon.png")} alt="" width="36" height="36" />
+    <span><strong>Tutur</strong></span>
+  </a>
+  <p>Data terbuka. Bukan layanan resmi KBBI.</p>
+  <a href={sitePath("/sumber/")}>Sumber data</a>
+  <a href={repositoryUrl} target="_blank" rel="noreferrer">GitHub ↗</a>
+</footer>

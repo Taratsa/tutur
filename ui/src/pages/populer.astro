@@ -1,0 +1,60 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PageHero from "../components/PageHero.astro";
+import { loadSiteData } from "../lib/build-data.js";
+import { sitePath } from "../lib/site.js";
+
+export const prerender = true;
+
+type Entry = {
+  word: string;
+  normalizedWord: string;
+  slug: string;
+  frequency: number | null;
+  root: string | null;
+};
+
+const POPULAR_LIMIT = 100;
+const data = await loadSiteData();
+const formatNumber = (value: number) => new Intl.NumberFormat("id-ID").format(value ?? 0);
+const popular = (data.entries as Entry[])
+  .filter((entry) => typeof entry.frequency === "number" && entry.frequency > 0)
+  .sort(
+    (left, right) =>
+      (right.frequency ?? 0) - (left.frequency ?? 0) ||
+      left.normalizedWord.localeCompare(right.normalizedWord, "id"),
+  )
+  .slice(0, POPULAR_LIMIT);
+---
+
+<BaseLayout
+  title="100 Kata Paling Sering Dipakai | Tutur"
+  description="Daftar kata Bahasa Indonesia yang paling sering muncul dalam korpus lebih dari 110 juta kata, dihitung dari dataset IndoLeX."
+  canonicalPath="/populer/"
+  currentPath="/populer/"
+>
+  <PageHero
+    eyebrow="Kata populer"
+    title="Kata paling sering dipakai."
+    description="Peringkat dihitung dari frekuensi kemunculan kata pada korpus teks berukuran lebih dari 110 juta kata (IndoLeX)."
+  />
+  <section class="section-wrap populer-page" aria-labelledby="populer-title">
+    <p class="eyebrow"><span></span>Peringkat korpus</p>
+    <h2 id="populer-title" class="sr-only">Seratus kata teratas</h2>
+    <ol class="populer-list">
+      {
+        popular.map((entry) => (
+          <li>
+            <a href={sitePath(`/kata/${entry.slug}/`)}>
+              <strong>{entry.word}</strong>
+              <small>
+                {formatNumber(entry.frequency ?? 0)}× kemunculan
+                {entry.root && entry.root !== entry.normalizedWord ? ` · akar: ${entry.root}` : ""}
+              </small>
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+</BaseLayout>

@@ -5,6 +5,10 @@ const commands = [
   ["bun", ["run", "clean"]],
   ["bun", ["run", "data:prepare"]],
   ["bun", ["run", "--cwd", "api", "db:build"]],
+  ["bun", ["run", "--cwd", "ui", "astro:build"]],
+  ["bun", ["run", "validate"]],
+  ["bun", ["run", "validate:ssr"]],
+  ["bun", ["run", "validate:a11y"]],
 ];
 
 for (const [command, args] of commands) {

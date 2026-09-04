@@ -1,10 +1,11 @@
 {
-  "name": "tutur-kbbi-explorer",
+  "name": "tutur",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "workspaces": [
     "shared",
+    "ui",
     "api"
   ],
   "scripts": {
@@ -13,13 +14,27 @@
     "api:build": "bun run --cwd api build",
     "api:benchmark": "bun run --cwd api benchmark",
     "api:test": "bun run --cwd api test",
+    "ui:build": "bun run --cwd ui build",
+    "ui:check": "bun run --cwd ui check",
     "build": "bun scripts/build-all.mjs",
+    "validate": "bun scripts/validate-output.mjs",
+    "validate:ssr": "bun scripts/validate-ssr.mjs",
+    "validate:a11y": "bun scripts/validate-a11y.mjs",
     "lint": "bun scripts/lint.mjs",
-    "format:check": "prettier --check package.json .prettierrc.json 'shared/**/*.js' 'api/**/*.js' 'scripts/**/*.mjs' 'README.md' '.github/**/*.yml'",
-    "test": "bun test shared/test api/test",
+    "format:check": "prettier --check package.json .prettierrc.json 'shared/**/*.js' 'api/**/*.js' 'ui/**/*.{astro,svelte,js,css}' ui/astro.config.mjs 'scripts/**/*.mjs' 'README.md' '.github/**/*.yml'",
+    "test": "bun test shared/test api/test ui/test",
     "clean": "bun scripts/clean-generated.mjs"
   },
   "devDependencies": {
-    "prettier": "3.9.6"
+    "@astrojs/check": "0.9.10",
+    "@axe-core/playwright": "4.13.0",
+    "astro": "7.3.1",
+    "axe-core": "4.13.0",
+    "playwright": "1.62.1",
+    "prettier": "3.9.6",
+    "prettier-plugin-astro": "0.14.1",
+    "prettier-plugin-svelte": "4.1.1",
+    "svelte": "5.57.0",
+    "typescript": "6.0.3"
   }
 }

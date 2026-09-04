@@ -1,0 +1,75 @@
+---
+import { letterPath } from "../lib/alphabet.js";
+import { sitePath } from "../lib/site.js";
+
+type AlphabetEntry = { word: string; slug: string; summary: string };
+type PageData = {
+  letter: string;
+  page: number;
+  total: number;
+  totalPages: number;
+  entries: AlphabetEntry[];
+};
+type Props = { pageData: PageData; availableLetters: string[] };
+const { pageData, availableLetters } = Astro.props as Props;
+const { letter, page, total, totalPages, entries } = pageData;
+const label =
+  letter === "0-9" ? "angka" : letter === "lainnya" ? "simbol dan Unicode" : letter.toUpperCase();
+const previousPath = page > 1 ? letterPath(letter, page - 1) : null;
+const nextPath = page < totalPages ? letterPath(letter, page + 1) : null;
+---
+
+<section class="page-hero alphabet-hero">
+  <div class="page-hero-inner">
+    <p class="eyebrow"><span></span>Daftar kata · {total.toLocaleString("id-ID")} entri</p><h1>
+      Kata berawalan {label}
+    </h1><p>Halaman {page} dari {totalPages}.</p>
+  </div>
+</section>
+<section class="section-wrap alphabet-browser">
+  <nav class="alphabet-nav" aria-label="Navigasi huruf">
+    {
+      availableLetters.map((item: string) => (
+        <a
+          class:list={[item === letter && "active"]}
+          aria-current={item === letter ? "page" : undefined}
+          href={sitePath(letterPath(item))}
+        >
+          {item === "0-9" ? "0–9" : item.toUpperCase()}
+        </a>
+      ))
+    }
+  </nav>
+  <div class="alphabet-heading">
+    <div><p class="eyebrow"><span></span>250 kata per halaman</p><h2>Daftar kata</h2></div><strong
+      >{entries.length} dari {total.toLocaleString("id-ID")}</strong
+    >
+  </div>
+  <ol class="alphabet-word-list">
+    {
+      entries.map((entry: AlphabetEntry) => (
+        <li>
+          <a href={sitePath(`/kata/${entry.slug}/`)}>
+            <>
+              <span>
+                <>
+                  <strong>{entry.word}</strong>
+                  <small>
+                    {entry.summary.slice(0, 180)}
+                    {entry.summary.length > 180 ? "…" : ""}
+                  </small>
+                </>
+              </span>
+              <span aria-hidden="true">→</span>
+            </>
+          </a>
+        </li>
+      ))
+    }
+  </ol>
+  <nav class="pagination" aria-label="Paginasi daftar kata">
+    {previousPath ? <a href={sitePath(previousPath)}>← Halaman sebelumnya</a> : <span />}<span
+      >Halaman {page} / {totalPages}</span
+    >{nextPath ? <a href={sitePath(nextPath)}>Halaman berikutnya →</a> : <span />}
+  </nav>
+</section>

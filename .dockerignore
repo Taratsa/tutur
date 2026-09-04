@@ -4,6 +4,8 @@
 **/node_modules
 bun.lockb
 build/
+ui/dist
+ui/.astro
 api/data
 data-raw
 
@@ -16,6 +18,13 @@ edisi-IV/*
 !edisi-IV/dictionary__JSON.json
 sinonim/*
 !sinonim/dictionary_sinonim__JSON.json
+indolex/*
+!indolex/indolex__JSON.json
+!indolex/kbbi_edisi_iv_enrichment__JSON.json
+kamus-alay/*
+!kamus-alay/dictionary_kamus_alay__JSON.json
+kbbi-v6/*
+!kbbi-v6/kbbi_v6__JSON.json
 
 Dockerfile
 compose.yml
