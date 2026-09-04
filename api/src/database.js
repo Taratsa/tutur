@@ -438,7 +438,12 @@ export function buildDatabase(data, outputPath) {
 }
 
 export function openReadOnlyDatabase(path) {
-  return new Database(path, { readonly: true, create: false });
+  const db = new Database(path, { readonly: true, create: false });
+  // Cache halaman 64 MB dan mmap 256 MB mempercepat pembacaan posting list
+  // FTS5 pada proses read-only tanpa mengubah file database.
+  db.run("PRAGMA cache_size = -65536;");
+  db.run("PRAGMA mmap_size = 268435456;");
+  return db;
 }
 
 export { COLLECTION_ORDER };

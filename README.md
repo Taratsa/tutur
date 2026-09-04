@@ -159,6 +159,28 @@ SEARCH_DB_PATH=data/search.sqlite bun run --cwd api start
 curl http://localhost:3001/health
 ```
 
+### Performa
+
+Hasil uji beban (mixed traffic, 250 klien) setelah optimasi: 649 RPS dengan
+p99 711 ms; exact match 1.007 RPS dengan p99 317 ms; worst case awal
+(pencarian trigram 3 karakter, 20 detik) turun menjadi ratusan milidetik.
+
+- Pipeline pencarian berhenti lebih awal: fase exact → prefix → token FTS
+  dijalankan berurutan, dan begitu jumlah hasil mencapai limit, fase
+  berikutnya dilewati karena tidak mungkin masuk hasil akhir.
+- Query 2-3 karakter memakai pemindaian LIKE yang berbatas, bukan trigram
+  FTS (hasilnya diurutkan berdasarkan frekuensi korpus, bukan relevansi).
+- Tokenizer FTS dibaca sekali per proses, bukan sekali per permintaan.
+- Respons 200 /api/search di-cache dalam proses (LRU) dan diberi ETag
+  lemah untuk revalidasi `If-None-Match`. Atur lewat `SEARCH_CACHE_TTL`
+  (milidetik, default 60000) dan `SEARCH_CACHE_MAX` (default 2048);
+  `SEARCH_CACHE_TTL=0` mematikan cache.
+- `PRAGMA cache_size`/`mmap_size` disetel pada koneksi read-only.
+
+`TRUST_PROXY=1` hanya untuk deployment di belakang reverse proxy
+(Caddy/nginx) yang menyetel `x-forwarded-for`; tanpa itu, header tersebut
+diabaikan agar rate limiter tidak bisa dilewati dengan header palsu.
+
 `api/.env.example` berisi `PORT`, `SEARCH_DB_PATH`, `CORS_ORIGIN`, dan batas
 rate. Atur `CORS_ORIGIN` secara eksplisit di produksi; jangan membuka semua
 origin tanpa alasan. Rate limiter bawaan bersifat process-local, sehingga

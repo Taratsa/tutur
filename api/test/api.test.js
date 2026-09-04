@@ -211,6 +211,128 @@ test("whole-token and FTS substring paths preserve ranking", async () => {
   expect((await ranked.json()).results[0].slug).toBe("bahasa");
 });
 
+test("short queries use the bounded LIKE scan instead of trigram FTS", async () => {
+  setup({ RATE_LIMIT_PER_MINUTE: "1000", SEARCH_CACHE_TTL: "0" });
+  const twoChar = await app.request("http://localhost/api/search?q=ba");
+  expect(twoChar.status).toBe(200);
+  expect((await twoChar.json()).results[0]).toMatchObject({ type: "dictionary", slug: "bahasa" });
+  const threeChar = await app.request("http://localhost/api/search?q=has");
+  expect(threeChar.status).toBe(200);
+  expect((await threeChar.json()).results[0]).toMatchObject({ type: "dictionary", slug: "bahasa" });
+});
+
+test("exact match that fills the limit skips later strategies", async () => {
+  setup({ RATE_LIMIT_PER_MINUTE: "1000", SEARCH_CACHE_TTL: "0" });
+  const limited = await app.request("http://localhost/api/search?q=bahasa&limit=1");
+  expect(limited.status).toBe(200);
+  const results = (await limited.json()).results;
+  expect(results.length).toBe(1);
+  expect(results[0]).toMatchObject({ type: "dictionary", slug: "bahasa" });
+});
+
+test("cached responses serve ETag/304, skip SQL on hit, and re-execute after expiry", async () => {
+  databasePath = `/tmp/tutur-search-fixture-${process.pid}-${Math.random().toString(16).slice(2)}.sqlite`;
+  buildDatabase(fixture, databasePath);
+  db = new Database(databasePath, { readonly: true });
+  let queryCount = 0;
+  const countingDb = new Proxy(db, {
+    get(target, prop) {
+      if (prop === "query") {
+        return (...args) => {
+          queryCount += 1;
+          return target.query(...args);
+        };
+      }
+      return target[prop];
+    },
+  });
+  let clock = 1_000_000;
+  const cachedApp = createApp({
+    db: countingDb,
+    env: { RATE_LIMIT_PER_MINUTE: "1000", SEARCH_CACHE_TTL: "60000" },
+    now: () => clock,
+  });
+
+  const first = await cachedApp.request("http://localhost/api/search?q=bahasa");
+  expect(first.status).toBe(200);
+  const etag = first.headers.get("etag");
+  expect(etag).toBeTruthy();
+  const payload = await first.text();
+  const queriesAfterFirst = queryCount;
+
+  const revalidated = await cachedApp.request("http://localhost/api/search?q=bahasa", {
+    headers: { "if-none-match": etag },
+  });
+  expect(revalidated.status).toBe(304);
+  expect(revalidated.headers.get("cache-control")).toContain("max-age=60");
+  expect(queryCount).toBe(queriesAfterFirst);
+
+  clock += 61_000;
+  const expired = await cachedApp.request("http://localhost/api/search?q=bahasa", {
+    headers: { "if-none-match": etag },
+  });
+  expect(queryCount).toBeGreaterThan(queriesAfterFirst);
+  expect(expired.status).toBe(304);
+  expect(await expired.text()).toBe("");
+});
+
+test("SEARCH_CACHE_TTL=0 re-executes the search on every request", async () => {
+  databasePath = `/tmp/tutur-search-fixture-${process.pid}-${Math.random().toString(16).slice(2)}.sqlite`;
+  buildDatabase(fixture, databasePath);
+  db = new Database(databasePath, { readonly: true });
+  let queryCount = 0;
+  const countingDb = new Proxy(db, {
+    get(target, prop) {
+      if (prop === "query") {
+        return (...args) => {
+          queryCount += 1;
+          return target.query(...args);
+        };
+      }
+      return target[prop];
+    },
+  });
+  const uncachedApp = createApp({
+    db: countingDb,
+    env: { RATE_LIMIT_PER_MINUTE: "1000", SEARCH_CACHE_TTL: "0" },
+  });
+
+  const first = await uncachedApp.request("http://localhost/api/search?q=bahasa");
+  expect(first.status).toBe(200);
+  await first.text();
+  const queriesAfterFirst = queryCount;
+
+  const second = await uncachedApp.request("http://localhost/api/search?q=bahasa");
+  expect(second.status).toBe(200);
+  await second.text();
+  expect(queryCount).toBeGreaterThan(queriesAfterFirst);
+});
+
+test("x-forwarded-for is only trusted when TRUST_PROXY=1", async () => {
+  setup({ RATE_LIMIT_PER_MINUTE: "1", CORS_ORIGIN: "http://localhost:4321" });
+  const headers = { "x-forwarded-for": "203.0.113.10" };
+  // Tanpa TRUST_PROXY, semua klien berbagi bucket "local" → permintaan kedua 429.
+  expect((await app.request("http://localhost/api/search?q=bahasa", { headers })).status).toBe(200);
+  expect((await app.request("http://localhost/api/search?q=bahasa", { headers })).status).toBe(429);
+
+  const proxied = createApp({
+    db,
+    env: {
+      RATE_LIMIT_PER_MINUTE: "1",
+      CORS_ORIGIN: "http://localhost:4321",
+      TRUST_PROXY: "1",
+    },
+  });
+  const first = await proxied.request("http://localhost/api/search?q=bahasa", { headers });
+  expect(first.status).toBe(200);
+  const second = await proxied.request("http://localhost/api/search?q=bahasa", { headers });
+  expect(second.status).toBe(429);
+  const otherClient = await proxied.request("http://localhost/api/search?q=bahasa", {
+    headers: { "x-forwarded-for": "198.51.100.7" },
+  });
+  expect(otherClient.status).toBe(200);
+});
+
 test("validation, 404, and rate limiting are explicit", async () => {
   setup({ RATE_LIMIT_PER_MINUTE: "1", CORS_ORIGIN: "http://localhost:4321" });
   expect((await app.request("http://localhost/api/search?q=a")).status).toBe(400);

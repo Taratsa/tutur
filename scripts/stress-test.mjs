@@ -26,7 +26,10 @@ const words = db
   )
   .all()
   .map((row) => row.word);
-const slang = db.query("SELECT slang FROM slang_relations LIMIT 400").all().map((r) => r.slang);
+const slang = db
+  .query("SELECT slang FROM slang_relations LIMIT 400")
+  .all()
+  .map((r) => r.slang);
 db.close();
 if (slugs.length === 0 || words.length === 0) throw new Error("slug/word pool is empty");
 
@@ -53,7 +56,8 @@ function nextRequest() {
       if (roll < 0.55) return `/api/search?q=${encodeURIComponent(pick(words))}&limit=20`;
       if (roll < 0.75) return `/api/search?q=${pick(words).slice(0, 3)}&limit=20`;
       if (roll < 0.9) return `/api/search?q=${pick(infixes)}&limit=20`;
-      if (roll < 0.97) return `/api/search?q=${encodeURIComponent(pick(slang))}&type=slang&limit=20`;
+      if (roll < 0.97)
+        return `/api/search?q=${encodeURIComponent(pick(slang))}&type=slang&limit=20`;
       return `/api/search?q=${pick(unknowns)}&limit=20`;
     }
     case "word":
@@ -100,7 +104,11 @@ const wallSec = (performance.now() - wallStarted) / 1000;
 
 latencies.sort((a, b) => a - b);
 const percentile = (p) =>
-  latencies.length ? Math.round(latencies[Math.min(latencies.length - 1, Math.floor((p / 100) * latencies.length))]) : 0;
+  latencies.length
+    ? Math.round(
+        latencies[Math.min(latencies.length - 1, Math.floor((p / 100) * latencies.length))],
+      )
+    : 0;
 const summary = {
   name,
   requests: latencies.length,

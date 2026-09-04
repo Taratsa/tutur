@@ -3,6 +3,10 @@ import { characterCount, normalizeWord, tokenText } from "@tutur/shared/normaliz
 export const SEARCH_TYPES = ["all", "dictionary", "baku", "sinonim", "antonim", "slang"];
 export const MAX_LIMIT = 50;
 const COLLECTION_ORDER = { dictionary: 0, baku: 1, sinonim: 2, antonim: 3, slang: 4 };
+// Trigram MATCH pada query pendek memindai kumpulan match yang sangat besar
+// (uji beban: 8 RPS dengan p99 20 detik pada query 3 karakter) sehingga query
+// 2-3 karakter diarahkan ke pemindaian LIKE yang berbatas.
+const MIN_TRIGRAM_LENGTH = 4;
 
 export function validateSearchParams({ q, type = "all", limit = "20" }) {
   const normalized = normalizeWord(q);
@@ -55,17 +59,46 @@ function compactResult(row) {
 }
 
 export function createSearcher(db) {
-  return function search(params) {
-    const { query, type, limit } = validateSearchParams(params);
+  // Nilai tokenizer tidak pernah berubah selama database read-only terbuka,
+  // jadi cukup dibaca sekali per proses, bukan sekali per permintaan.
+  let tokenizerLookupDone = false;
+  let tokenizer;
+  const getTokenizer = () => {
+    if (!tokenizerLookupDone) {
+      tokenizer = db.query("SELECT value FROM metadata WHERE key = 'ftsTokenizer'").get()?.value;
+      tokenizerLookupDone = true;
+    }
+    return tokenizer;
+  };
+
+  function finish(results, limit) {
+    return [...results.values()]
+      .sort(
+        (left, right) =>
+          left.rank - right.rank ||
+          COLLECTION_ORDER[left.collection] - COLLECTION_ORDER[right.collection] ||
+          right.frequency - left.frequency ||
+          left.id - right.id,
+      )
+      .slice(0, limit)
+      .map(compactResult);
+  }
+
+  // Fase dijalankan berurutan sesuai rank (exact=0 … fts/like=3). Urutan akhir
+  // memprioritaskan rank, jadi begitu jumlah hasil mencapai limit, fase
+  // berikutnya tidak mungkin masuk hasil akhir dan bisa langsung dilewati.
+  function searchPrepared({ query, type, limit }) {
     const scope = scopeFor(type);
     const scopeArgs = scopeParams(type);
     const results = new Map();
+
     const exact = db
       .query(
         `SELECT id, collection, word, secondary_word, summary, slug, url, frequency FROM search_entries WHERE ${scope} AND (normalized_word = ? OR normalized_secondary = ?) ORDER BY CASE WHEN normalized_word = ? THEN 0 ELSE 1 END, id LIMIT ?`,
       )
       .all(...scopeArgs, query, query, query, limit);
     for (const row of exact) addResult(results, row, 0);
+    if (results.size >= limit) return finish(results, limit);
 
     const prefix = db
       .query(
@@ -73,6 +106,7 @@ export function createSearcher(db) {
       )
       .all(...scopeArgs, `${escapeGlob(query)}*`, `${escapeGlob(query)}*`, limit * 3);
     for (const row of prefix) addResult(results, row, 1);
+    if (results.size >= limit) return finish(results, limit);
 
     const tokenQuery = tokenText(query)
       .split(" ")
@@ -86,15 +120,13 @@ export function createSearcher(db) {
         )
         .all(...scopeArgs, tokenQuery, limit * 3);
       for (const row of wholeToken) addResult(results, row, 2);
+      if (results.size >= limit) return finish(results, limit);
     }
 
-    const tokenizer = db
-      .query("SELECT value FROM metadata WHERE key = 'ftsTokenizer'")
-      .get()?.value;
-    if (characterCount(query) >= 3) {
+    if (characterCount(query) >= MIN_TRIGRAM_LENGTH) {
       try {
         const ftsQuery =
-          tokenizer === "trigram"
+          getTokenizer() === "trigram"
             ? `"${query.replaceAll('"', '""')}"`
             : query
                 .split(" ")
@@ -118,15 +150,12 @@ export function createSearcher(db) {
       for (const row of shortQuery) addResult(results, row, 3);
     }
 
-    return [...results.values()]
-      .sort(
-        (left, right) =>
-          left.rank - right.rank ||
-          COLLECTION_ORDER[left.collection] - COLLECTION_ORDER[right.collection] ||
-          right.frequency - left.frequency ||
-          left.id - right.id,
-      )
-      .slice(0, limit)
-      .map(compactResult);
-  };
+    return finish(results, limit);
+  }
+
+  function search(params) {
+    return searchPrepared(validateSearchParams(params));
+  }
+
+  return { search, searchPrepared };
 }
