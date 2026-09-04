@@ -98,6 +98,9 @@ try {
         viewport: { width: viewport.width, height: viewport.height },
         reducedMotion: "reduce",
       });
+      // Validation builds are production builds, so drop analytics traffic
+      // instead of sending test pageviews to the real collector.
+      await context.route(/umami\.kenadera\.org/u, (route) => route.abort());
       const page = await context.newPage();
       for (const scan of viewport.scans) {
         const response = await page.goto(requestPath(scan.path), { waitUntil: "load" });

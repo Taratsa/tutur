@@ -1,11 +1,17 @@
 import { cors } from "hono/cors";
 import { Hono } from "hono";
 import { compress } from "hono/compress";
-import { createSearcher, SearchInputError, validateSearchParams } from "./search.js";
+import type { Context } from "hono";
+import type { Database } from "bun:sqlite";
+import { createSearcher, SearchInputError, validateSearchParams } from "./search.ts";
+import type { SearchParams } from "./search.ts";
 
 const SEARCH_CACHE_CONTROL = "public, max-age=60, stale-while-revalidate=300";
 
-function allowedOrigins(value) {
+type JsonErrorStatus = 400 | 404 | 429 | 500;
+type AppEnv = Record<string, string | undefined>;
+
+function allowedOrigins(value: string | undefined): Set<string> {
   return new Set(
     String(value ?? "")
       .split(",")
@@ -14,7 +20,7 @@ function allowedOrigins(value) {
   );
 }
 
-function clientKey(c, trustProxy) {
+function clientKey(c: Context, trustProxy: boolean): string {
   if (trustProxy) {
     const forwarded = c.req.header("x-forwarded-for");
     if (forwarded) return forwarded.split(",")[0].trim();
@@ -24,12 +30,30 @@ function clientKey(c, trustProxy) {
   return "local";
 }
 
-function readCount(value, fallback) {
+function readCount(value: string | undefined, fallback: number): number {
   const parsed = Number.parseInt(value ?? "", 10);
   return Number.isNaN(parsed) ? fallback : Math.max(0, parsed);
 }
 
-export function createApp({ db, env = process.env, now = () => Date.now() } = {}) {
+function jsonError(c: Context, status: JsonErrorStatus, error: string, headers = {}) {
+  return c.json({ error }, status, headers);
+}
+
+interface CacheEntry {
+  payload: string;
+  etag: string;
+  storedAt: number;
+}
+
+export function createApp({
+  db,
+  env = process.env,
+  now = () => Date.now(),
+}: {
+  db: Database;
+  env?: AppEnv;
+  now?: () => number;
+}) {
   if (!db) throw new Error("A read-only SQLite database is required");
   const app = new Hono();
   const { searchPrepared } = createSearcher(db);
@@ -38,16 +62,16 @@ export function createApp({ db, env = process.env, now = () => Date.now() } = {}
   const windowMs = 60_000;
   const rateLimit = Math.max(1, Number.parseInt(env.RATE_LIMIT_PER_MINUTE ?? "120", 10) || 120);
   const clientEvictionThreshold = Math.max(rateLimit * 4, 4096);
-  const clients = new Map();
+  const clients = new Map<string, { startedAt: number; count: number }>();
 
   // Cache respons dalam proses: hanya 200, dibatasi SEARCH_CACHE_MAX entri
   // (LRU), kedaluwarsa setelah SEARCH_CACHE_TTL milidetik, dan bisa dimatikan
   // dengan SEARCH_CACHE_TTL=0.
   const cacheTtl = readCount(env.SEARCH_CACHE_TTL, 60_000);
   const cacheMax = readCount(env.SEARCH_CACHE_MAX, 2048);
-  const cache = new Map();
+  const cache = new Map<string, CacheEntry>();
 
-  function lookupCache(key, timestamp) {
+  function lookupCache(key: string, timestamp: number): CacheEntry | null {
     if (cacheTtl <= 0 || cacheMax <= 0) return null;
     const hit = cache.get(key);
     if (!hit) return null;
@@ -60,19 +84,21 @@ export function createApp({ db, env = process.env, now = () => Date.now() } = {}
     return hit;
   }
 
-  function storeCache(key, entry, timestamp) {
+  function storeCache(key: string, entry: Omit<CacheEntry, "storedAt">, timestamp: number): void {
     if (cacheTtl <= 0 || cacheMax <= 0) return;
-    entry.storedAt = timestamp;
-    cache.set(key, entry);
-    if (cache.size > cacheMax) cache.delete(cache.keys().next().value);
+    cache.set(key, { ...entry, storedAt: timestamp });
+    if (cache.size > cacheMax) {
+      const oldest = cache.keys().next().value;
+      if (oldest !== undefined) cache.delete(oldest);
+    }
   }
 
   app.use("*", compress());
   app.use("*", cors({ origin: (origin) => (origins.has(origin) ? origin : "") }));
 
   app.get("/health", (c) => c.json({ status: "ok" }, 200, { "Cache-Control": "no-store" }));
-  app.get("/api/search", (c) => {
-    let query;
+  app.get("/api/search", (c: Context) => {
+    let query: SearchParams;
     try {
       query = validateSearchParams(c.req.query());
     } catch (error) {
@@ -104,7 +130,10 @@ export function createApp({ db, env = process.env, now = () => Date.now() } = {}
     const cacheHit = lookupCache(cacheKey, timestamp);
     if (cacheHit) {
       if (c.req.header("if-none-match") === cacheHit.etag) {
-        return c.body(null, 304, { ETag: cacheHit.etag, "Cache-Control": SEARCH_CACHE_CONTROL });
+        return c.body(null, 304, {
+          ETag: cacheHit.etag,
+          "Cache-Control": SEARCH_CACHE_CONTROL,
+        });
       }
       return c.body(cacheHit.payload, 200, {
         "Content-Type": "application/json; charset=UTF-8",
@@ -113,8 +142,8 @@ export function createApp({ db, env = process.env, now = () => Date.now() } = {}
       });
     }
 
-    let payload;
-    let etag;
+    let payload: string;
+    let etag: string;
     try {
       const results = searchPrepared(query);
       payload = JSON.stringify({ query: query.query, results });
@@ -142,8 +171,4 @@ export function createApp({ db, env = process.env, now = () => Date.now() } = {}
     return jsonError(c, 500, "Pencarian sedang tidak tersedia.");
   });
   return app;
-}
-
-function jsonError(c, status, error, headers = {}) {
-  return c.json({ error }, status, headers);
 }

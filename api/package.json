@@ -4,11 +4,11 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "bun ../scripts/prepare-data.mjs && bun scripts/build-db.mjs && bun --watch src/index.js",
+    "dev": "bun ../scripts/prepare-data.mjs && bun scripts/build-db.mjs && bun --watch src/index.ts",
     "db:build": "bun scripts/build-db.mjs",
     "build": "bun ../scripts/prepare-data.mjs && bun scripts/build-db.mjs",
     "benchmark": "bun scripts/benchmark.mjs",
-    "start": "bun src/index.js",
+    "start": "bun src/index.ts",
     "test": "bun test test"
   },
   "dependencies": {

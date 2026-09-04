@@ -1,8 +1,8 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { createSlugMap } from "../shared/src/slug.js";
-import { groupDictionaryRecords } from "../shared/src/grouping.js";
-import { definitionToText, sanitizeDefinition, truncateText } from "../shared/src/sanitize.js";
-import { displayWord, normalizeWord, tokenText, wordLetter } from "../shared/src/normalization.js";
+import { createSlugMap } from "../shared/src/slug.ts";
+import { groupDictionaryRecords } from "../shared/src/grouping.ts";
+import { definitionToText, sanitizeDefinition, truncateText } from "../shared/src/sanitize.ts";
+import { displayWord, normalizeWord, tokenText, wordLetter } from "../shared/src/normalization.ts";
 
 const root = new URL("../", import.meta.url);
 const sourcePaths = {

@@ -1,7 +1,7 @@
 import { performance } from "node:perf_hooks";
 import { resolve } from "node:path";
-import { openReadOnlyDatabase } from "../src/database.js";
-import { createApp } from "../src/app.js";
+import { openReadOnlyDatabase } from "../src/database.ts";
+import { createApp } from "../src/app.ts";
 
 const databasePath = resolve(process.cwd(), process.env.SEARCH_DB_PATH ?? "data/search.sqlite");
 const db = openReadOnlyDatabase(databasePath);

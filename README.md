@@ -243,7 +243,7 @@ docker build -t tutur .
 docker run -p 4321:4321 tutur
 
 # API pencarian di 3001 (peran kedua dari gambar yang sama)
-docker run -p 3001:3001 -e PORT=3001 tutur bun api/src/index.js
+docker run -p 3001:3001 -e PORT=3001 tutur bun api/src/index.ts
 ```
 
 `SITE_URL`, `BASE_PATH`, dan `PUBLIC_SEARCH_API_URL` adalah build arg karena

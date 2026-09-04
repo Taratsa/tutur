@@ -25,7 +25,7 @@ services:
 
   api:
     image: tutur:local
-    command: ["bun", "api/src/index.js"]
+    command: ["bun", "api/src/index.ts"]
     ports:
       - "127.0.0.1:3001:3001"
     environment:

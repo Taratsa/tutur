@@ -14,7 +14,7 @@ const build = Bun.spawnSync(["bun", "run", "build"], {
 if (build.exitCode !== 0) process.exit(build.exitCode);
 
 const children = [
-  Bun.spawn(["bun", "src/index.js"], {
+  Bun.spawn(["bun", "src/index.ts"], {
     cwd: `${root}api`,
     stdin: "inherit",
     stdout: "inherit",

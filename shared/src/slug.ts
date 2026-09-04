@@ -1,6 +1,12 @@
-import { normalizeWord } from "./normalization.js";
+import { normalizeWord } from "./normalization.ts";
 
-function readableSlug(value) {
+export interface SlugMap {
+  wordToSlug: Map<string, string>;
+  slugToWord: Map<string, string>;
+  collisionCount: number;
+}
+
+function readableSlug(value: string): string {
   const slug = normalizeWord(value)
     .normalize("NFKD")
     .replace(/\p{Mark}/gu, "")
@@ -14,7 +20,7 @@ function readableSlug(value) {
   return slug;
 }
 
-export function createSlugMap(words) {
+export function createSlugMap(words: string[]): SlugMap {
   const normalizedWords = [...new Set(words.map(normalizeWord))];
   if (normalizedWords.some((word) => !word)) {
     throw new Error("Cannot create slugs for an empty normalized word");
@@ -22,9 +28,9 @@ export function createSlugMap(words) {
 
   normalizedWords.sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
 
-  const wordToSlug = new Map();
-  const slugToWord = new Map();
-  const usedSlugs = new Set();
+  const wordToSlug = new Map<string, string>();
+  const slugToWord = new Map<string, string>();
+  const usedSlugs = new Set<string>();
   let collisionCount = 0;
 
   for (const word of normalizedWords) {
@@ -44,9 +50,9 @@ export function createSlugMap(words) {
   return { wordToSlug, slugToWord, collisionCount };
 }
 
-export function slugForWord(word, slugMap) {
+export function slugForWord(word: string, slugMap: Map<string, string>): string {
   const normalized = normalizeWord(word);
-  const slug = slugMap instanceof Map ? slugMap.get(normalized) : slugMap?.[normalized];
+  const slug = slugMap.get(normalized);
   if (!slug) throw new Error(`No slug exists for normalized word: ${normalized}`);
   return slug;
 }

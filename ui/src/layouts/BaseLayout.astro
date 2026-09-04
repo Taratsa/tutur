@@ -38,6 +38,24 @@ const serializedJsonLd = jsonLd ? JSON.stringify(jsonLd).replaceAll("<", "\\u003
         <script is:inline type="application/ld+json" set:html={serializedJsonLd} />
       )
     }
+    {
+      import.meta.env.PROD && (
+        <>
+          <script
+            is:inline
+            defer
+            src="https://umami.kenadera.org/script.js"
+            data-website-id="2d61f2c6-008f-4480-8bdb-9ecc6e4da3fb"
+          />
+          <script
+            is:inline
+            defer
+            src="https://umami.kenadera.org/recorder.js"
+            data-website-id="2d61f2c6-008f-4480-8bdb-9ecc6e4da3fb"
+          />
+        </>
+      )
+    }
   </head>
   <body>
     <SiteHeader currentPath={currentPath} />

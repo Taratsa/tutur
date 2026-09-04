@@ -179,5 +179,5 @@ USER bun
 EXPOSE 4321 3001
 
 # Server SSR UI di 4321 secara default; jalankan API pencarian dengan:
-#   docker run -e PORT=3001 -p 3001:3001 tutur bun api/src/index.js
+#   docker run -e PORT=3001 -p 3001:3001 tutur bun api/src/index.ts
 CMD ["bun", "ui/dist/server/entry.mjs"]

@@ -1,6 +1,6 @@
 import { mkdir, rename, rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { buildDatabase } from "../src/database.js";
+import { buildDatabase } from "../src/database.ts";
 
 const dataPath = new URL("../../build/data/site.json", import.meta.url);
 const outputDirectory = new URL("../data/", import.meta.url);

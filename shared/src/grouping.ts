@@ -1,7 +1,13 @@
-import { displayWord, normalizeWord } from "./normalization.js";
+import { displayWord, normalizeWord } from "./normalization.ts";
 
-export function groupDictionaryRecords(records) {
-  const groups = new Map();
+export interface WordGroup<T> {
+  normalizedWord: string;
+  word: string;
+  records: T[];
+}
+
+export function groupDictionaryRecords<T extends { word?: unknown }>(records: T[]): WordGroup<T>[] {
+  const groups = new Map<string, WordGroup<T>>();
 
   for (const record of records) {
     const normalizedWord = normalizeWord(record?.word);

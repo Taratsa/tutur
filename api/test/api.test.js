@@ -1,8 +1,8 @@
 import { afterEach, expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
 import { rm } from "node:fs/promises";
-import { createApp } from "../src/app.js";
-import { buildDatabase } from "../src/database.js";
+import { createApp } from "../src/app.ts";
+import { buildDatabase } from "../src/database.ts";
 
 const fixture = {
   stats: {

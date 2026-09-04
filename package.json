@@ -22,13 +22,14 @@
     "validate:a11y": "bun scripts/validate-a11y.mjs",
     "lint": "bun scripts/lint.mjs",
     "stress": "bun scripts/stress-test.mjs",
-    "format:check": "prettier --check package.json .prettierrc.json 'shared/**/*.js' 'api/**/*.js' 'ui/**/*.{astro,svelte,js,css}' ui/astro.config.mjs 'scripts/**/*.mjs' 'README.md' '.github/**/*.yml'",
+    "format:check": "prettier --check package.json .prettierrc.json 'shared/**/*.{js,ts}' 'api/**/*.{js,ts}' 'ui/**/*.{astro,svelte,js,css}' ui/astro.config.mjs 'scripts/**/*.mjs' 'README.md' '.github/**/*.yml'",
     "test": "bun test shared/test api/test ui/test",
     "clean": "bun scripts/clean-generated.mjs"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",
     "@axe-core/playwright": "4.13.0",
+    "@types/bun": "^1.4.1",
     "astro": "7.3.1",
     "axe-core": "4.13.0",
     "playwright": "1.62.1",

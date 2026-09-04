@@ -1,10 +1,16 @@
-import { Database } from "bun:sqlite";
+import { Database, type Statement } from "bun:sqlite";
 import { tokenText, normalizeWord } from "@tutur/shared/normalization";
 import { truncateText } from "@tutur/shared/sanitize";
+import type { PreparedData, PreparedEntry } from "@tutur/shared/types";
 
-const COLLECTION_ORDER = ["dictionary", "baku", "sinonim", "antonim", "slang"];
+export const COLLECTION_ORDER = ["dictionary", "baku", "sinonim", "antonim", "slang"] as const;
 
-function createSchema(db) {
+interface PreparedWord {
+  display: string;
+  normalized: string;
+}
+
+function createSchema(db: Database): string {
   db.exec(`
     PRAGMA foreign_keys = ON;
     CREATE TABLE entries (
@@ -132,17 +138,17 @@ function createSchema(db) {
 }
 
 function addSearchEntry(
-  insert,
-  insertTokens,
-  nextId,
-  collection,
-  sourceId,
-  word,
-  secondary,
-  summary,
-  slug,
+  insert: Statement,
+  insertTokens: Statement,
+  nextId: number,
+  collection: (typeof COLLECTION_ORDER)[number],
+  sourceId: number,
+  word: PreparedWord,
+  secondary: PreparedWord | null,
+  summary: string,
+  slug: string | null,
   frequency = 0,
-) {
+): number {
   const normalizedWord = word.normalized;
   const normalizedSecondary = secondary?.normalized ?? null;
   const compactSummary = truncateText(summary || word.display, 240);
@@ -166,12 +172,12 @@ function addSearchEntry(
   return nextId + 1;
 }
 
-export function buildDatabase(data, outputPath) {
+export function buildDatabase(data: PreparedData, outputPath: string): void {
   const db = new Database(outputPath);
   db.exec("PRAGMA journal_mode = DELETE; PRAGMA synchronous = OFF; PRAGMA temp_store = MEMORY;");
   const tokenizer = createSchema(db);
   const entryByWord = new Map(data.entries.map((entry) => [entry.normalizedWord, entry]));
-  const slugFor = (normalized) => entryByWord.get(normalized)?.slug ?? null;
+  const slugFor = (normalized: string): string | null => entryByWord.get(normalized)?.slug ?? null;
 
   const insertEntry = db.prepare("INSERT INTO entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
   const insertDefinition = db.prepare("INSERT INTO definitions VALUES (?, ?, ?, ?, ?, ?)");
@@ -206,13 +212,13 @@ export function buildDatabase(data, outputPath) {
         entry.normalizedWord,
         entry.slug,
         entry.letter,
-        entry.definitions[0].text.slice(0, 240),
+        entry.definitions[0]!.text.slice(0, 240),
         entry.frequency ?? null,
         entry.root ?? null,
         entry.rootRank ?? null,
       );
       for (let index = 0; index < entry.definitions.length; index += 1) {
-        const definition = entry.definitions[index];
+        const definition = entry.definitions[index]!;
         insertDefinition.run(
           definitionId,
           entry.id,
@@ -243,7 +249,7 @@ export function buildDatabase(data, outputPath) {
         entry.id,
         { display: entry.word, normalized: entry.normalizedWord },
         null,
-        entry.definitions[0].text.slice(0, 240),
+        entry.definitions[0]!.text.slice(0, 240),
         entry.slug,
         entry.frequency ?? 0,
       );
@@ -417,6 +423,12 @@ export function buildDatabase(data, outputPath) {
     CREATE INDEX idx_slang_normalized_slang ON slang_relations(normalized_slang);
     CREATE INDEX idx_slang_formal_slug ON slang_relations(formal_slug);
     CREATE INDEX idx_families_root ON word_families(normalized_root, frequency DESC);
+    CREATE INDEX idx_baku_word_slug ON baku_relations(word_slug);
+    CREATE INDEX idx_baku_wrong_slug ON baku_relations(wrong_slug);
+    CREATE INDEX idx_sinonim_word_slug ON synonym_relations(word_slug);
+    CREATE INDEX idx_sinonim_counterpart_slug ON synonym_relations(counterpart_slug);
+    CREATE INDEX idx_antonym_word_slug ON antonym_relations(word_slug);
+    CREATE INDEX idx_antonym_counterpart_slug ON antonym_relations(counterpart_slug);
   `);
   const metadata = db.prepare("INSERT INTO metadata VALUES (?, ?)");
   metadata.run("ftsTokenizer", tokenizer);
@@ -434,10 +446,9 @@ export function buildDatabase(data, outputPath) {
   metadata.run("searchRecords", String(searchId - 1));
   db.exec("PRAGMA optimize;");
   db.close();
-  return { tokenizer, searchRecords: searchId - 1 };
 }
 
-export function openReadOnlyDatabase(path) {
+export function openReadOnlyDatabase(path: string): Database {
   const db = new Database(path, { readonly: true, create: false });
   // Cache halaman 64 MB dan mmap 256 MB mempercepat pembacaan posting list
   // FTS5 pada proses read-only tanpa mengubah file database.
@@ -445,5 +456,3 @@ export function openReadOnlyDatabase(path) {
   db.run("PRAGMA mmap_size = 268435456;");
   return db;
 }
-
-export { COLLECTION_ORDER };
