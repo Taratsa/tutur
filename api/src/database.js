@@ -369,26 +369,23 @@ export function buildDatabase(data, outputPath) {
         JSON.stringify(relation.categories ?? []),
         formalSlug,
       );
-      if (formalSlug) {
-        searchId = addSearchEntry(
-          insertSearch,
-          insertTokens,
-          searchId,
-          "slang",
-          relation.id,
-          { display: relation.slang, normalized: relation.normalizedSlang },
-          { display: relation.formal, normalized: relation.normalizedFormal },
-          `Bentuk slang (tidak baku) dari "${relation.formal}".`,
-          formalSlug,
-        );
-        insertFts.run(
-          searchId - 1,
-          searchId - 1,
-          `${relation.normalizedSlang} ${relation.normalizedFormal} bentuk slang tidak baku`,
-        );
-      }
+      searchId = addSearchEntry(
+        insertSearch,
+        insertTokens,
+        searchId,
+        "slang",
+        relation.id,
+        { display: relation.slang, normalized: relation.normalizedSlang },
+        { display: relation.formal, normalized: relation.normalizedFormal },
+        `Bentuk slang (tidak baku) dari "${relation.formal}".`,
+        formalSlug,
+      );
+      insertFts.run(
+        searchId - 1,
+        searchId - 1,
+        `${relation.normalizedSlang} ${relation.normalizedFormal} bentuk slang tidak baku`,
+      );
     }
-
     for (const family of data.families ?? []) {
       for (const member of family.members) {
         insertFamily.run(
