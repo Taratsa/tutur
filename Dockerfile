@@ -24,6 +24,11 @@ COPY edisi-IV/dictionary__JSON.json edisi-IV/dictionary__JSON.json
 COPY baku-nonbaku/dictionary_baku_nonbaku__JSON.json baku-nonbaku/dictionary_baku_nonbaku__JSON.json
 COPY sinonim/dictionary_sinonim__JSON.json sinonim/dictionary_sinonim__JSON.json
 COPY antonim/dictionary_antonim__JSON.json antonim/dictionary_antonim__JSON.json
+COPY indolex/indolex__JSON.json indolex/indolex__JSON.json
+COPY indolex/indolex_root_frequencies__JSON.json indolex/indolex_root_frequencies__JSON.json
+COPY indolex/kbbi_edisi_iv_enrichment__JSON.json indolex/kbbi_edisi_iv_enrichment__JSON.json
+COPY kamus-alay/dictionary_kamus_alay__JSON.json kamus-alay/dictionary_kamus_alay__JSON.json
+COPY kbbi-v6/kbbi_v6__JSON.json kbbi-v6/kbbi_v6__JSON.json
 
 # Alur sama dengan `bun run build` tanpa langkah validasi: normalisasi JSON -> SQLite
 RUN bun run data:prepare \
@@ -47,7 +52,7 @@ RUN bun run --cwd ui astro:build
 RUN <<'EOF'
 set -e
 bun -e '
-const { readdirSync, readFileSync, mkdirSync, cpSync } = require("node:fs");
+const { existsSync, readdirSync, readFileSync, mkdirSync, cpSync } = require("node:fs");
 const root = "/app/ui/dist/server";
 const specs = new Set();
 const walk = (dir) => {
@@ -75,6 +80,8 @@ function findPkgDir(pkg) {
   const stack = ["/app/node_modules"];
   while (stack.length) {
     const dir = stack.pop();
+    const candidate = dir + "/" + pkg;
+    if (existsSync(candidate + "/package.json")) return candidate;
     let entries;
     try {
       entries = readdirSync(dir, { withFileTypes: true });
@@ -83,27 +90,53 @@ function findPkgDir(pkg) {
     }
     for (const entry of entries) {
       if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === ".bin") continue;
-      const full = dir + "/" + entry.name;
-      if (full === "/app/node_modules/" + pkg) return full;
-      if (full.length < 160) stack.push(full);
+      const nested = dir + "/" + entry.name + "/node_modules";
+      if (existsSync(nested)) stack.push(nested);
     }
   }
   return null;
 }
-for (const pkg of packages) {
-  let sourceDir;
+
+function resolvePkgDir(pkg, paths) {
   try {
-    const resolved = require.resolve(pkg, { paths: ["/app/ui"] });
-    sourceDir = resolved.slice(0, resolved.lastIndexOf("/" + pkg + "/"));
+    const resolved = require.resolve(pkg, { paths });
+    const marker = "/node_modules/" + pkg + "/";
+    const markerIndex = resolved.lastIndexOf(marker);
+    if (markerIndex >= 0) return resolved.slice(0, markerIndex + marker.length - 1);
   } catch {
-    sourceDir = findPkgDir(pkg);
-    if (!sourceDir) {
-      console.log("SKIP (tidak terpasang):", pkg);
-      continue;
+  }
+  return findPkgDir(pkg);
+}
+
+const queue = [...packages].map((pkg) => ({ pkg, paths: ["/app/ui"] }));
+const queued = new Set(packages);
+const copied = new Set();
+while (queue.length) {
+  const { pkg, paths } = queue.shift();
+  if (copied.has(pkg)) continue;
+  const sourceDir = resolvePkgDir(pkg, paths);
+  copied.add(pkg);
+  if (!sourceDir) {
+    console.log("SKIP (tidak terpasang):", pkg);
+    continue;
+  }
+  const destination = "/app/runtime-ui/node_modules/" + pkg;
+  mkdirSync(destination.slice(0, destination.lastIndexOf("/")), { recursive: true });
+  cpSync(sourceDir, destination, { recursive: true, dereference: true });
+  console.log("COPY", pkg, "dari", sourceDir);
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(sourceDir + "/package.json", "utf8"));
+  } catch {
+    manifest = {};
+  }
+  for (const field of ["dependencies", "optionalDependencies", "peerDependencies"]) {
+    for (const dependency of Object.keys(manifest[field] ?? {})) {
+      if (queued.has(dependency)) continue;
+      queued.add(dependency);
+      queue.push({ pkg: dependency, paths: [sourceDir] });
     }
   }
-  cpSync(sourceDir, "/app/runtime-ui/node_modules/" + pkg, { recursive: true, dereference: true });
-  console.log("COPY", pkg, "dari", sourceDir);
 }
 let honoResolved;
 try {

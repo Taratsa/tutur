@@ -5,12 +5,12 @@ services:
     build:
       context: .
       args:
-        SITE_URL: ${SITE_URL:-http://localhost:4321}
+        SITE_URL: ${SITE_URL:-https://tutur.taratsa.id}
         BASE_PATH: ${BASE_PATH:-/}
-        PUBLIC_SEARCH_API_URL: ${PUBLIC_SEARCH_API_URL:-http://localhost:3001}
+        PUBLIC_SEARCH_API_URL: ${PUBLIC_SEARCH_API_URL:-https://tutur.taratsa.id/api/search}
     image: tutur:local
     ports:
-      - "4321:4321"
+      - "127.0.0.1:4321:4321"
     environment:
       HOST: 0.0.0.0
       PORT: 4321
@@ -18,24 +18,38 @@ services:
       api:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      caddy_net:
+        aliases:
+          - tutur-ui
 
   api:
     image: tutur:local
     command: ["bun", "api/src/index.js"]
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     environment:
       PORT: 3001
+      CORS_ORIGIN: https://tutur.taratsa.id
     healthcheck:
       test:
         [
           "CMD",
           "bun",
           "-e",
-          "const r = await fetch(`http://127.0.0.1:${process.env.PORT}/health`); if (!r.ok) throw new Error(String(r.status));",
+          "const r = await fetch(`http://127.0.0.1:$${process.env.PORT}/health`); if (!r.ok) throw new Error(String(r.status));",
         ]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 15s
     restart: unless-stopped
+    networks:
+      caddy_net:
+        aliases:
+          - tutur-api
+
+networks:
+  caddy_net:
+    external: true
+    name: caddy_net
