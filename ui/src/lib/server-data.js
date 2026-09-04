@@ -240,6 +240,17 @@ export function getPopularWords(limit = 100) {
     .map((row) => ({ word: row.word, slug: row.slug, frequency: row.frequency, root: row.root }));
 }
 
+export function getWordGraph(slug) {
+  const row = db().query("SELECT data FROM word_graphs WHERE slug = ?").get(slug);
+  if (!row) return null;
+  try {
+    const parsed = JSON.parse(row.data);
+    return Array.isArray(parsed.nodes) && parsed.nodes.length > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export function getDatabasePath() {
   return databaseFile();
 }

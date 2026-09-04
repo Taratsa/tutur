@@ -56,6 +56,8 @@ try {
   }
   if (!wordResponse) throw new Error("SSR server did not start");
   const wordHtml = await wordResponse.text();
+  // Definisi tetap terbaca penuh tanpa JavaScript. Island graf kata boleh
+  // di-hydrate, tetapi island pencarian (bundle terberat) tidak boleh ikut.
   if (
     wordResponse.status !== 200 ||
     !/<html lang="id">/u.test(wordHtml) ||
@@ -65,7 +67,8 @@ try {
     (wordHtml.match(/<h1>/gu) || []).length !== 1 ||
     !/<h1>bahasa<\/h1>/u.test(wordHtml) ||
     !/<ol class="definitions">[\s\S]*<li>/u.test(wordHtml) ||
-    /<script[^>]+type="module"/u.test(wordHtml)
+    /SearchIsland/u.test(wordHtml) ||
+    (wordHtml.match(/<script[^>]+type="module"/gu) || []).length > 1
   ) {
     throw new Error(
       "Representative SSR word page is missing SEO, definition, or JS-disabled content",

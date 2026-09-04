@@ -1984,3 +1984,214 @@ main {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Graf kata (korpus Leipzig) */
+.word-graph-section {
+  margin-top: 64px;
+}
+
+.word-graph-frame {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.word-graph {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.word-graph:active {
+  cursor: grabbing;
+}
+
+.graph-edge {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+
+.graph-edge-label {
+  fill: var(--quiet);
+  font-size: 9px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.graph-node circle {
+  fill: var(--surface);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  cursor: grab;
+}
+
+.graph-node text {
+  fill: var(--ink);
+  font-size: 10px;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.graph-node.linked circle {
+  stroke-width: 2.5;
+}
+
+.graph-node.linked a {
+  cursor: pointer;
+}
+
+.graph-anchor circle {
+  fill: var(--ink);
+}
+
+.graph-anchor text {
+  fill: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.word-graph-help {
+  margin: 10px 0 0;
+  color: var(--quiet);
+  font-size: 10px;
+}
+
+.word-graph-lists {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(240px, 0.85fr);
+  gap: clamp(28px, 5vw, 64px);
+  margin-top: 30px;
+}
+
+.word-graph-lists h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.graph-cooc .cooc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.graph-cooc .cooc-list li {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 2px;
+  padding: 7px 10px;
+}
+
+.graph-cooc .cooc-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: rgb(0 0 0 / 4%);
+}
+
+.graph-cooc .cooc-list li > :not(.cooc-bar) {
+  position: relative;
+}
+
+.graph-cooc .cooc-count {
+  min-width: 34px;
+  color: var(--quiet);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.graph-cooc .cooc-list a,
+.graph-cooc .cooc-list span {
+  color: var(--ink);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.graph-cooc .cooc-list a:hover {
+  text-decoration: underline;
+}
+
+.graph-neighbours .neighbour-group {
+  margin-bottom: 20px;
+}
+
+.graph-neighbours h4 {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.neighbour-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.neighbour-list li {
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.neighbour-list a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.neighbour-list a:hover {
+  text-decoration: underline;
+}
+
+.neighbour-list small {
+  margin-left: 4px;
+  color: var(--quiet);
+  font-size: 9px;
+}
+
+.neighbour-list .empty {
+  border-color: transparent;
+  color: var(--quiet);
+}
+
+.corpus-examples {
+  margin-top: 26px;
+}
+
+.corpus-examples h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.corpus-list {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.corpus-list li {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.corpus-list strong {
+  color: var(--ink);
+}
+
+@media (max-width: 960px) {
+  .word-graph-lists {
+    grid-template-columns: 1fr;
+  }
+}

@@ -4,6 +4,7 @@ const started = performance.now();
 const commands = [
   ["bun", ["run", "clean"]],
   ["bun", ["run", "data:prepare"]],
+  ["bun", ["scripts/prepare-word-graph.ts"]],
   ["bun", ["run", "--cwd", "api", "db:build"]],
   ["bun", ["run", "--cwd", "ui", "astro:build"]],
   ["bun", ["run", "validate"]],

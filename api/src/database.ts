@@ -118,6 +118,7 @@ function createSchema(db: Database): string {
       frequency INTEGER NOT NULL DEFAULT 0
     );
     CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+    CREATE TABLE word_graphs (slug TEXT PRIMARY KEY, data TEXT NOT NULL);
   `);
 
   let tokenizer = "trigram";
@@ -455,4 +456,14 @@ export function openReadOnlyDatabase(path: string): Database {
   db.run("PRAGMA cache_size = -65536;");
   db.run("PRAGMA mmap_size = 268435456;");
   return db;
+}
+
+export function insertWordGraphs(db: Database, graphs: Record<string, unknown>): number {
+  const insert = db.prepare("INSERT OR REPLACE INTO word_graphs (slug, data) VALUES (?, ?)");
+  const rows = Object.entries(graphs).map(([slug, data]) => [slug, JSON.stringify(data)] as const);
+  const insertAll = db.transaction((batch: Array<readonly [string, string]>) => {
+    for (const [slug, data] of batch) insert.run(slug, data);
+  });
+  insertAll(rows);
+  return rows.length;
 }

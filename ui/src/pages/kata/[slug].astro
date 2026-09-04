@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { getWordPage } from "../../lib/server-data.js";
+import WordGraph from "../../components/WordGraph.svelte";
+import { getWordPage, getWordGraph } from "../../lib/server-data.js";
 import { absoluteRoute, sitePath } from "../../lib/site.js";
 
 export const prerender = false;
@@ -44,6 +45,15 @@ type WordPage = {
 };
 const entry = getWordPage(Astro.params.slug ?? "") as WordPage | null;
 if (!entry) Astro.response.status = 404;
+const graph = entry ? getWordGraph(entry.slug) : null;
+const maxGraphSig = graph ? Math.max(...graph.nodes.map((node) => node.sig), 1) : 1;
+const exampleHtml = (sentence: string) =>
+  sentence
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replace(/«([^»]*)»/g, "<strong>$1</strong>")
+    .replace(/[«»]/g, "");
 const definitions = entry?.definitions ?? [];
 const extras = entry?.extras ?? null;
 const related = entry?.related ?? [];
@@ -178,6 +188,16 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
                   </>
                 </div>
               )}
+              {graph && (
+                <div class="source-note">
+                  <>
+                    <strong>Korpus</strong>
+                    <p>
+                      Muncul {graph.sentences}× dalam 100.000 kalimat korpus Leipzig ind_mixed_2013.
+                    </p>
+                  </>
+                </div>
+              )}
               <div class="source-note">
                 <>
                   <strong>Sumber</strong>
@@ -190,6 +210,96 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
             </>
           </aside>
         </div>
+        {graph && (
+          <section class="word-graph-section" aria-labelledby="graph-title">
+            <div class="word-section-heading">
+              <p class="eyebrow">
+                <span />
+                Korpus Leipzig · ind_mixed_2013
+              </p>
+              <h2 id="graph-title">Graf kata</h2>
+            </div>
+            <WordGraph
+              client:visible
+              word={graph.word}
+              anchorId={graph.anchorId}
+              nodes={graph.nodes}
+              edges={graph.edges}
+              slug={entry.slug}
+            />
+            <p class="word-graph-help">
+              Dari {graph.sentences} kalimat korpus (frekuensi {graph.freq}). Angka pada garis
+              adalah frekuensi kemunculan berpasangan. Seret node untuk menata; klik node
+              bersambungan untuk membuka halaman katanya.
+            </p>
+            <div class="word-graph-lists">
+              <div class="graph-cooc">
+                <h3>Kata dalam kalimat yang sama</h3>
+                <ol class="cooc-list">
+                  {graph.nodes.map((node) => (
+                    <li>
+                      <span
+                        class="cooc-bar"
+                        style={`width:${Math.max(8, (node.sig / maxGraphSig) * 100)}%`}
+                      />
+                      <span class="cooc-count">{node.freq}×</span>
+                      {node.slug ? (
+                        <a href={sitePath(`/kata/${node.slug}/`)}>{node.word}</a>
+                      ) : (
+                        <span>{node.word}</span>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              <div class="graph-neighbours">
+                <h3>Kata tetangga</h3>
+                <div class="neighbour-group">
+                  <h4>Sebelum</h4>
+                  <ul class="neighbour-list">
+                    {graph.left.map((node) => (
+                      <li>
+                        {node.slug ? (
+                          <a href={sitePath(`/kata/${node.slug}/`)}>{node.word}</a>
+                        ) : (
+                          <span>{node.word}</span>
+                        )}
+                        <small>{node.freq}×</small>
+                      </li>
+                    ))}
+                    {graph.left.length === 0 && <li class="empty">—</li>}
+                  </ul>
+                </div>
+                <div class="neighbour-group">
+                  <h4>Sesudah</h4>
+                  <ul class="neighbour-list">
+                    {graph.right.map((node) => (
+                      <li>
+                        {node.slug ? (
+                          <a href={sitePath(`/kata/${node.slug}/`)}>{node.word}</a>
+                        ) : (
+                          <span>{node.word}</span>
+                        )}
+                        <small>{node.freq}×</small>
+                      </li>
+                    ))}
+                    {graph.right.length === 0 && <li class="empty">—</li>}
+                  </ul>
+                </div>
+              </div>
+            </div>
+            {graph.examples.length > 0 && (
+              <div class="corpus-examples">
+                <h3>Contoh dari korpus</h3>
+                <ol class="corpus-list">
+                  {graph.examples.map((example) => (
+                    <li set:html={exampleHtml(example)} />
+                  ))}
+                </ol>
+              </div>
+            )}
+          </section>
+        )}
         {extras?.examples && extras.examples.length > 0 && (
           <section class="word-extras" aria-labelledby="examples-title">
             <div class="word-section-heading">

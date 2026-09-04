@@ -29,9 +29,11 @@ COPY data/indolex/indolex_root_frequencies__JSON.json data/indolex/indolex_root_
 COPY data/indolex/kbbi_edisi_iv_enrichment__JSON.json data/indolex/kbbi_edisi_iv_enrichment__JSON.json
 COPY data/kamus-alay/dictionary_kamus_alay__JSON.json data/kamus-alay/dictionary_kamus_alay__JSON.json
 COPY data/kbbi-v6/kbbi_v6__JSON.json data/kbbi-v6/kbbi_v6__JSON.json
+COPY data/leipzig data/leipzig
 
 # Alur sama dengan `bun run build` tanpa langkah validasi: normalisasi JSON -> SQLite
 RUN bun run data:prepare \
+ && bun scripts/prepare-word-graph.ts \
  && bun run --cwd api db:build
 
 # Bundle SSR Astro menyematkan SITE_URL dan URL API ke aset client saat build

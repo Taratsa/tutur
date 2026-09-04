@@ -296,10 +296,11 @@ terenrich frekuensi, 68.245 headword membawa extras KBBI VI, dan 17.367
 keluarga kata berisi 103.569 anggota. Build penuh terakhir selesai dalam
 sekitar 34 detik; output Astro sekitar 1,73 MiB dan jumlah gzip per-file
 sekitar 0,58 MiB. Database SQLite sekitar 261.513.216 byte dengan 82.447
-record pencarian. Halaman kata contoh berukuran 36.709 byte dan memiliki nol
-module script. Bundle SearchIsland berukuran 108.301 byte (30.474 byte gzip),
-sedangkan CSS bersama 27.188 byte (5.936 byte gzip). Sitemap menghasilkan 4
-dokumen dengan 71.393 URL.
+record pencarian. Halaman kata contoh berukuran 36.709 byte; definisi tetap
+terbaca tanpa JavaScript — satu-satunya hydration adalah island graf kata
+korpus yang dimuat lazy. Bundle SearchIsland berukuran 108.301 byte (30.474
+byte gzip), sedangkan CSS bersama 27.188 byte (5.936 byte gzip). Sitemap
+menghasilkan 4 dokumen dengan 71.393 URL.
 
 Validator memeriksa jumlah halaman kata, collision/duplicate route, title,
 canonical, `h1`, definisi, hydration pada halaman kata, bagian enrichment
