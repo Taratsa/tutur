@@ -21,6 +21,7 @@
     "validate:ssr": "bun scripts/validate-ssr.mjs",
     "validate:a11y": "bun scripts/validate-a11y.mjs",
     "lint": "bun scripts/lint.mjs",
+    "stress": "bun scripts/stress-test.mjs",
     "format:check": "prettier --check package.json .prettierrc.json 'shared/**/*.js' 'api/**/*.js' 'ui/**/*.{astro,svelte,js,css}' ui/astro.config.mjs 'scripts/**/*.mjs' 'README.md' '.github/**/*.yml'",
     "test": "bun test shared/test api/test ui/test",
     "clean": "bun scripts/clean-generated.mjs"

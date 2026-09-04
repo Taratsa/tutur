@@ -6,14 +6,14 @@ import { displayWord, normalizeWord, tokenText, wordLetter } from "../shared/src
 
 const root = new URL("../", import.meta.url);
 const sourcePaths = {
-  dictionary: new URL("edisi-IV/dictionary__JSON.json", root),
-  baku: new URL("baku-nonbaku/dictionary_baku_nonbaku__JSON.json", root),
-  sinonim: new URL("sinonim/dictionary_sinonim__JSON.json", root),
-  antonim: new URL("antonim/dictionary_antonim__JSON.json", root),
-  enrichment: new URL("indolex/kbbi_edisi_iv_enrichment__JSON.json", root),
-  indolex: new URL("indolex/indolex__JSON.json", root),
-  alay: new URL("kamus-alay/dictionary_kamus_alay__JSON.json", root),
-  v6: new URL("kbbi-v6/kbbi_v6__JSON.json", root),
+  dictionary: new URL("data/edisi-IV/dictionary__JSON.json", root),
+  baku: new URL("data/baku-nonbaku/dictionary_baku_nonbaku__JSON.json", root),
+  sinonim: new URL("data/sinonim/dictionary_sinonim__JSON.json", root),
+  antonim: new URL("data/antonim/dictionary_antonim__JSON.json", root),
+  enrichment: new URL("data/indolex/kbbi_edisi_iv_enrichment__JSON.json", root),
+  indolex: new URL("data/indolex/indolex__JSON.json", root),
+  alay: new URL("data/kamus-alay/dictionary_kamus_alay__JSON.json", root),
+  v6: new URL("data/kbbi-v6/kbbi_v6__JSON.json", root),
 };
 const outputDirectory = new URL("../build/data/", import.meta.url);
 

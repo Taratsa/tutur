@@ -20,15 +20,15 @@ COPY api api
 COPY ui ui
 
 # Sumber dataset yang dibaca scripts/prepare-data.mjs
-COPY edisi-IV/dictionary__JSON.json edisi-IV/dictionary__JSON.json
-COPY baku-nonbaku/dictionary_baku_nonbaku__JSON.json baku-nonbaku/dictionary_baku_nonbaku__JSON.json
-COPY sinonim/dictionary_sinonim__JSON.json sinonim/dictionary_sinonim__JSON.json
-COPY antonim/dictionary_antonim__JSON.json antonim/dictionary_antonim__JSON.json
-COPY indolex/indolex__JSON.json indolex/indolex__JSON.json
-COPY indolex/indolex_root_frequencies__JSON.json indolex/indolex_root_frequencies__JSON.json
-COPY indolex/kbbi_edisi_iv_enrichment__JSON.json indolex/kbbi_edisi_iv_enrichment__JSON.json
-COPY kamus-alay/dictionary_kamus_alay__JSON.json kamus-alay/dictionary_kamus_alay__JSON.json
-COPY kbbi-v6/kbbi_v6__JSON.json kbbi-v6/kbbi_v6__JSON.json
+COPY data/edisi-IV/dictionary__JSON.json data/edisi-IV/dictionary__JSON.json
+COPY data/baku-nonbaku/dictionary_baku_nonbaku__JSON.json data/baku-nonbaku/dictionary_baku_nonbaku__JSON.json
+COPY data/sinonim/dictionary_sinonim__JSON.json data/sinonim/dictionary_sinonim__JSON.json
+COPY data/antonim/dictionary_antonim__JSON.json data/antonim/dictionary_antonim__JSON.json
+COPY data/indolex/indolex__JSON.json data/indolex/indolex__JSON.json
+COPY data/indolex/indolex_root_frequencies__JSON.json data/indolex/indolex_root_frequencies__JSON.json
+COPY data/indolex/kbbi_edisi_iv_enrichment__JSON.json data/indolex/kbbi_edisi_iv_enrichment__JSON.json
+COPY data/kamus-alay/dictionary_kamus_alay__JSON.json data/kamus-alay/dictionary_kamus_alay__JSON.json
+COPY data/kbbi-v6/kbbi_v6__JSON.json data/kbbi-v6/kbbi_v6__JSON.json
 
 # Alur sama dengan `bun run build` tanpa langkah validasi: normalisasi JSON -> SQLite
 RUN bun run data:prepare \

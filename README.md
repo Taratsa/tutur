@@ -4,8 +4,9 @@ Tutur adalah situs kamus Bahasa Indonesia yang dibangun dari
 dataset referensi KBBI SQL Database. Situs ini bukan layanan resmi KBBI dan
 tidak berafiliasi dengan Badan Pengembangan dan Pembinaan Bahasa.
 
-Repositori ini sengaja memakai Git baru. Isi `edisi-IV/`, `baku-nonbaku/`,
-`sinonim/`, `antonim/`, `indolex/`, `kamus-alay/`, dan `kbbi-v6/` diperlakukan
+Repositori ini sengaja memakai Git baru. Isi `data/edisi-IV/`, `data/baku-nonbaku/`,
+`data/sinonim/`, `data/antonim/`, `data/indolex/`, `data/kamus-alay/`, dan
+`data/kbbi-v6/` diperlakukan
 sebagai data source/reference untuk membangun keluaran baru; riwayat Git
 repositori sumber tidak digunakan.
 
@@ -95,16 +96,16 @@ dirender oleh Astro.
 Selain empat dataset relasi, `bun run data:prepare` menggabungkan tiga sumber
 baru ke dalam data canonical:
 
-- **IndoLeX** (`indolex/`): tabel `kbbi_edisi_iv_enrichment` join-ready
+- **IndoLeX** (`data/indolex/`): tabel `kbbi_edisi_iv_enrichment` join-ready
   memberi setiap headword `frequency` (korpus 110+ juta kata), `root`,
   `root_rank`, dan `root_frequency`; 38.364 dari 71.093 headword terenrich.
   File `indolex__JSON.json` menyediakan 131.534 bentuk kata yang dikelompokkan
   menjadi 17.367 keluarga kata per akar untuk halaman kata. Frekuensi juga
   dipakai sebagai tiebreaker ranking pencarian dan untuk halaman `/populer/`.
-- **Kamus Alay** (`kamus-alay/`): 4.459 pasangan slang → bentuk baku menjadi
+- **Kamus Alay** (`data/kamus-alay/`): 4.459 pasangan slang → bentuk baku menjadi
   koleksi `slang` di API (`type=slang`) dan bagian "Bentuk slang" di halaman
   kata baku yang memilikinya.
-- **KBBI VI** (`kbbi-v6/`, snapshot Definisi/kbbi): contoh pemakaian,
+- **KBBI VI** (`data/kbbi-v6/`, snapshot Definisi/kbbi): contoh pemakaian,
   turunan, gabungan kata, peribahasa, kiasan, pelafalan, dan etimologi
   di-join per normalized headword (bukan menggabungkan makna lintas edisi)
   dan disimpan di tabel `entry_extras`; 68.245 headword terenrich. Halaman
@@ -251,8 +252,8 @@ docker run -p 4321:4321 \
 ```
 
 `.dockerignore` membatasi build context hanya pada sumber JSON tiap dataset
-(sekitar 110 MB setelah `kbbi-v6/` dan `indolex/` ikut dibawa); format ekspor
-lama, `data-raw/`, dan `node_modules` tidak dikirim ke daemon.
+(sekitar 110 MB setelah `data/kbbi-v6/` dan `data/indolex/` ikut dibawa); format
+ekspor lama, `data/data-raw/`, dan `node_modules` tidak dikirim ke daemon.
 
 ## Ukuran keluaran dan validasi
 
@@ -326,11 +327,11 @@ komersial. Ketentuan hak cipta dan lisensi sumber tetap berlaku.
 
 Dokumentasi dan contoh konsumsi data sumber tetap tersedia di:
 
-- [`edisi-IV/`](edisi-IV/)
-- [`baku-nonbaku/`](baku-nonbaku/)
-- [`sinonim/`](sinonim/)
-- [`antonim/`](antonim/)
-- [`indolex/`](indolex/)
-- [`kamus-alay/`](kamus-alay/)
-- [`kbbi-v6/`](kbbi-v6/)
-- [`data-raw/`](data-raw/)
+- [`data/edisi-IV/`](data/edisi-IV/)
+- [`data/baku-nonbaku/`](data/baku-nonbaku/)
+- [`data/sinonim/`](data/sinonim/)
+- [`data/antonim/`](data/antonim/)
+- [`data/indolex/`](data/indolex/)
+- [`data/kamus-alay/`](data/kamus-alay/)
+- [`data/kbbi-v6/`](data/kbbi-v6/)
+- [`data/data-raw/`](data/data-raw/)
