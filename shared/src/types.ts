@@ -23,6 +23,39 @@ export interface PreparedExtras {
   idioms: ExtraItem[];
 }
 
+export interface EtymologyRelation {
+  id: number;
+  termId: string;
+  lang: string;
+  term: string;
+  normalizedTerm: string;
+  relationType: string;
+  relatedTermId: string | null;
+  relatedLang: string | null;
+  relatedTerm: string | null;
+  position: number | null;
+  groupTag: string | null;
+  parentTag: string | null;
+  parentPosition: number | null;
+}
+
+export interface KaikkiForm {
+  text: string;
+  tags: string[];
+}
+
+export interface KaikkiEntry {
+  id: number;
+  word: string;
+  normalizedWord: string;
+  partOfSpeech: string;
+  etymology: string | null;
+  pronunciations: string[];
+  forms: KaikkiForm[];
+  derived: string[];
+  synonyms: string[];
+}
+
 export interface PreparedEntry {
   id: number;
   word: string;
@@ -103,6 +136,12 @@ export interface PreparedStats {
   familyRoots?: number;
   familyMembers?: number;
   searchRecords?: number;
+  etymologyRecords?: number;
+  etymologyTerms?: number;
+  etymologyLinkedTerms?: number;
+  kaikkiRecords?: number;
+  kaikkiTerms?: number;
+  kaikkiEtymologyTerms?: number;
 }
 
 export interface PreparedData {
@@ -113,6 +152,8 @@ export interface PreparedData {
     sinonim: SinonimRelation[];
     antonim: AntonymRelation[];
     slang?: SlangRelation[];
+    etymology?: EtymologyRelation[];
   };
+  kaikki?: KaikkiEntry[];
   families: FamilyGroup[];
 }

@@ -48,6 +48,13 @@ data/kamus-alay/*
 data/kbbi-v6/*
 !data/kbbi-v6/README.md
 !data/kbbi-v6/kbbi_v6__JSON.json
+data/etymology-db/*
+!data/etymology-db/README.md
+!data/etymology-db/etymology_db_indonesian__JSON.json
+!data/etymology-db/etymology_metadata__JSON.json
+data/kaikki/*
+!data/kaikki/README.md
+!data/kaikki/kaikki.org-dictionary-Indonesian.jsonl.gz
 
 ### Korpus Leipzig besar: diambil via scripts/fetch-leipzig.ts, tidak di-commit
 data/leipzig/*.json

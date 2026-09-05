@@ -91,6 +91,29 @@ try {
       "Enriched word page is missing corpus frequency, family, or v6 extras sections",
     );
 
+  const etymology = await get("/kata/adat/");
+  const etymologyHtml = await etymology.text();
+  if (
+    etymology.status !== 200 ||
+    !/<h2 id="etymology-title">Etimologi<\/h2>/u.test(etymologyHtml) ||
+    !/Wiktionary/u.test(etymologyHtml) ||
+    !/Berakar pada/u.test(etymologyHtml) ||
+    !/<h2 id="kaikki-title">Data leksikal<\/h2>/u.test(etymologyHtml) ||
+    !/Wiktextract/u.test(etymologyHtml) ||
+    !/IPA:/u.test(etymologyHtml)
+  )
+    throw new Error("Etymology word page is missing structured source relations or Kaikki data");
+
+  const kaikki = await get("/kata/tesaurus/");
+  const kaikkiHtml = await kaikki.text();
+  if (
+    kaikki.status !== 200 ||
+    !/<h2 id="kaikki-title">Data leksikal<\/h2>/u.test(kaikkiHtml) ||
+    !/Borrowed from Dutch thesaurus/u.test(kaikkiHtml) ||
+    !/IPA:/u.test(kaikkiHtml)
+  )
+    throw new Error("Kaikki enrichment is missing from the tesaurus word page");
+
   const slangPage = await get("/kata/banget/");
   const slangHtml = await slangPage.text();
   if (slangPage.status !== 200 || !/Bentuk slang/u.test(slangHtml) || !/>bgt</u.test(slangHtml))

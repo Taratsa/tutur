@@ -10,6 +10,20 @@ type Definition = { html: string; text: string; type: number | null };
 type Related = { word: string; slug: string; kind: string };
 type Neighbor = { word: string; slug: string } | null;
 type ExtraItem = { text: string; slug: string | null };
+type EtymologyRelation = {
+  relationType: string;
+  relatedLang: string | null;
+  relatedTerm: string | null;
+};
+type KaikkiForm = { text: string; tags: string[] };
+type KaikkiEntry = {
+  partOfSpeech: string;
+  etymology: string | null;
+  pronunciations: string[];
+  forms: KaikkiForm[];
+  derived: string[];
+  synonyms: string[];
+};
 type Extras = {
   pronunciation: string | null;
   etymology: string | null;
@@ -35,6 +49,8 @@ type WordPage = {
   rootWord: string | null;
   rootSlug: string | null;
   definitions: Definition[];
+  etymologyRelations: EtymologyRelation[];
+  kaikkiEntries: KaikkiEntry[];
   extras: Extras | null;
   slangForms: SlangForm[];
   slangTargets: SlangTarget[];
@@ -55,12 +71,42 @@ const exampleHtml = (sentence: string) =>
     .replace(/«([^»]*)»/g, "<strong>$1</strong>")
     .replace(/[«»]/g, "");
 const definitions = entry?.definitions ?? [];
+const etymologyRelations = entry?.etymologyRelations ?? [];
+const kaikkiEntries = entry?.kaikkiEntries ?? [];
 const extras = entry?.extras ?? null;
 const related = entry?.related ?? [];
 const family = entry?.family ?? [];
 const slangForms = entry?.slangForms ?? [];
 const slangTargets = entry?.slangTargets ?? [];
 const formatNumber = (value: number) => new Intl.NumberFormat("id-ID").format(value ?? 0);
+const etymologyLabels: Record<string, string> = {
+  "back-formation_from": "Dibentuk balik dari",
+  blend_of: "Paduan dari",
+  borrowed_from: "Dipinjam dari",
+  calque_of: "Terjemahan langsung dari",
+  clipping_of: "Pemendekan dari",
+  cognate_of: "Berkerabat dengan",
+  compound_of: "Gabungan dari",
+  derived_from: "Berasal dari",
+  doublet_with: "Berstem sama dengan",
+  etymologically_related_to: "Berkerabat secara etimologis dengan",
+  has_affix: "Menggunakan afiks",
+  has_confix: "Menggunakan konfiks",
+  has_prefix: "Menggunakan awalan",
+  has_prefix_with_root: "Awalan pada akar",
+  has_root: "Berakar pada",
+  has_suffix: "Menggunakan akhiran",
+  has_suffix_with_root: "Akhiran pada akar",
+  inherited_from: "Diwariskan dari",
+  initialism_of: "Inisial dari",
+  is_onomatopoeic: "Bersifat onomatope",
+  learned_borrowing_from: "Dipinjam melalui jalur terpelajar dari",
+  "phono-semantic_matching_of": "Penyesuaian bunyi-makna dari",
+  semantic_loan_of: "Pinjaman makna dari",
+  unadapted_borrowing_from: "Dipinjam tanpa adaptasi dari",
+};
+const etymologyLabel = (relationType: string) =>
+  etymologyLabels[relationType] ?? relationType.replaceAll("_", " ");
 const definitionText =
   definitions.map((item: Definition) => item.text).join(" ") || "Kata tidak ditemukan.";
 const description = entry
@@ -183,7 +229,7 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
               {extras?.etymology && (
                 <div class="source-note">
                   <>
-                    <strong>Etimologi</strong>
+                    <strong>Etimologi KBBI VI</strong>
                     <p>{extras.etymology}</p>
                   </>
                 </div>
@@ -210,6 +256,114 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
             </>
           </aside>
         </div>
+        {etymologyRelations.length > 0 && (
+          <section class="word-extras" aria-labelledby="etymology-title">
+            <div class="word-section-heading">
+              <p class="eyebrow">
+                <span />
+                Asal-usul kata
+              </p>
+              <h2 id="etymology-title">Etimologi</h2>
+            </div>
+            <p class="etymology-note">
+              Relasi ini berasal dari{" "}
+              <a
+                href="https://github.com/ManaSiWibi/KBBI-SQL-database/tree/main/etymology-db"
+                target="_blank"
+                rel="noreferrer"
+              >
+                etymology-db
+              </a>{" "}
+              dan diparsing dari Wiktionary; hasilnya belum divalidasi secara sistematis.
+            </p>
+            <ul class="example-list etymology-list">
+              {etymologyRelations.map((relation: EtymologyRelation) => (
+                <li>
+                  <span class="example-kind">{etymologyLabel(relation.relationType)}</span>
+                  <p>
+                    {relation.relatedTerm ? (
+                      <>
+                        {relation.relatedLang && <span>{relation.relatedLang}: </span>}
+                        <em>{relation.relatedTerm}</em>
+                      </>
+                    ) : (
+                      "Tidak ada kata terkait yang dicatat."
+                    )}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        {kaikkiEntries.length > 0 && (
+          <section class="word-extras" aria-labelledby="kaikki-title">
+            <div class="word-section-heading">
+              <p class="eyebrow">
+                <span />
+                Kaikki · Wiktionary
+              </p>
+              <h2 id="kaikki-title">Data leksikal</h2>
+            </div>
+            <p class="etymology-note">
+              Data tambahan ini diekstrak oleh Wiktextract dan disediakan melalui{" "}
+              <a
+                href="https://kaikki.org/dictionary/Indonesian/index.html"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Kaikki
+              </a>
+              ; bukan definisi resmi KBBI. Teks sumber mengikuti{" "}
+              <a
+                href="https://en.wiktionary.org/wiki/Wiktionary:Copyrights"
+                target="_blank"
+                rel="noreferrer"
+              >
+                ketentuan lisensi Wiktionary
+              </a>
+              .
+            </p>
+            <div class="kaikki-list">
+              {kaikkiEntries.map((item: KaikkiEntry) => (
+                <article class="kaikki-entry">
+                  <header class="kaikki-entry-header">
+                    <strong>{item.partOfSpeech}</strong>
+                    {item.pronunciations.length > 0 && (
+                      <span>IPA: {item.pronunciations.join(" · ")}</span>
+                    )}
+                  </header>
+                  {item.etymology && (
+                    <p>
+                      <b>Etimologi:</b> {item.etymology}
+                    </p>
+                  )}
+                  {item.forms.length > 0 && (
+                    <p>
+                      <b>Bentuk:</b>{" "}
+                      {item.forms.map((form: KaikkiForm, index: number) => (
+                        <span>
+                          {index > 0 && ", "}
+                          {form.text}
+                          {form.tags.length > 0 && <small> ({form.tags.join(", ")})</small>}
+                        </span>
+                      ))}
+                    </p>
+                  )}
+                  {item.synonyms.length > 0 && (
+                    <p>
+                      <b>Sinonim:</b> {item.synonyms.join(", ")}
+                    </p>
+                  )}
+                  {item.derived.length > 0 && (
+                    <p>
+                      <b>Turunan:</b> {item.derived.join(", ")}
+                    </p>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
         {graph && (
           <section class="word-graph-section" aria-labelledby="graph-title">
             <div class="word-section-heading">

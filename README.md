@@ -93,8 +93,8 @@ dirender oleh Astro.
 
 ### Enrichment: frekuensi, akar kata, slang, dan KBBI VI
 
-Selain empat dataset relasi, `bun run data:prepare` menggabungkan tiga sumber
-baru ke dalam data canonical:
+Selain empat dataset relasi, `bun run data:prepare` menggabungkan beberapa sumber
+tambahan ke dalam data canonical:
 
 - **IndoLeX** (`data/indolex/`): tabel `kbbi_edisi_iv_enrichment` join-ready
   memberi setiap headword `frequency` (korpus 110+ juta kata), `root`,
@@ -110,6 +110,16 @@ baru ke dalam data canonical:
   di-join per normalized headword (bukan menggabungkan makna lintas edisi)
   dan disimpan di tabel `entry_extras`; 68.245 headword terenrich. Halaman
   kata menampilkan bagian ini hanya bila datanya ada.
+- **Etymology DB** (`data/etymology-db/`): 39.605 relasi asal-usul bahasa
+  Indonesia hasil parsing Wiktionary, di-join berdasarkan normalized term dan
+  disimpan di tabel `etymology_relations`. Node `group_*` dipertahankan untuk
+  provenance tetapi tidak ditampilkan sebagai relasi leksikal. Dataset ini
+  bersifat pelengkap dan tidak mewakili klaim resmi Badan Bahasa.
+- **Kaikki** (`data/kaikki/`): snapshot postprocessed Wiktextract dari
+  Wiktionary Indonesia. Metadata yang cocok dengan 18.481 headword KBBI
+  disimpan di tabel `kaikki_entries`: kelas kata, IPA, bentuk kata,
+  etimologi, turunan, dan sinonim. Bagian ini bersifat pelengkap dan tidak
+  menggantikan definisi KBBI.
 
 Nilai v6 dan slang dirender sebagai teks polos hasil trim/pemadatan
 whitespace; tidak ada HTML mentah dari sumber yang lolos ke halaman.
@@ -329,18 +339,19 @@ di repositori ini antara lain:
 1. [KBBI Daring — Badan Pengembangan dan Pembinaan Bahasa (resmi)](https://kbbi.kemdikbud.go.id/)
 2. [Ican Bachors — KBBI.sql](https://github.com/bachors/KBBI.sql)
 3. [ManaSiWibi — KBBI-SQL-database](https://github.com/ManaSiWibi/KBBI-SQL-database)
-4. [aryakdaniswara — kbbi-v6-full-csv](https://github.com/aryakdaniswara/kbbi-v6-full-csv)
-5. [aryakdaniswara — kbbi-v6-categories](https://github.com/aryakdaniswara/kbbi-v6-categories)
-6. [aryakdaniswara — kbbi-v6-wordlist](https://github.com/aryakdaniswara/kbbi-v6-wordlist)
-7. [aryakdaniswara — kbbi-dataset-kbbi-v](https://github.com/aryakdaniswara/kbbi-dataset-kbbi-v)
-8. [Definisi — kbbi (snapshot KBBI VI)](https://github.com/Definisi/kbbi)
-9. [univzy — kbbi (re:KBBI VI)](https://github.com/univzy/kbbi)
-10. [Lyon28 — Kamus Besar Bahasa Indonesia (Hugging Face)](https://huggingface.co/datasets/Lyon28/kamus-besar-bahasa-indonesia)
-11. [raf555 — KBBI-api](https://github.com/raf555/kbbi-api)
-12. [IndoLeX — frekuensi leksikal (Kaggle, CC BY-NC-SA 4.0)](https://www.kaggle.com/datasets/binhashem/indolex-indonesian-academic-lexical-dataset)
-13. [nasalsabila — kamus-alay](https://github.com/nasalsabila/kamus-alay)
-14. [Leipzig Corpora Collection — ind_mixed_2013 (korpus kalimat)](https://downloads.wortschatz-leipzig.de/corpora/ind_mixed_2013_1M.tar.gz)
-15. Baku/nonbaku, sinonim, dan antonim pada direktori masing-masing.
+4. [Kaikki — Indonesian machine-readable dictionary](https://kaikki.org/dictionary/Indonesian/index.html)
+5. [aryakdaniswara — kbbi-v6-full-csv](https://github.com/aryakdaniswara/kbbi-v6-full-csv)
+6. [aryakdaniswara — kbbi-v6-categories](https://github.com/aryakdaniswara/kbbi-v6-categories)
+7. [aryakdaniswara — kbbi-v6-wordlist](https://github.com/aryakdaniswara/kbbi-v6-wordlist)
+8. [aryakdaniswara — kbbi-dataset-kbbi-v](https://github.com/aryakdaniswara/kbbi-dataset-kbbi-v)
+9. [Definisi — kbbi (snapshot KBBI VI)](https://github.com/Definisi/kbbi)
+10. [univzy — kbbi (re:KBBI VI)](https://github.com/univzy/kbbi)
+11. [Lyon28 — Kamus Besar Bahasa Indonesia (Hugging Face)](https://huggingface.co/datasets/Lyon28/kamus-besar-bahasa-indonesia)
+12. [raf555 — KBBI-api](https://github.com/raf555/kbbi-api)
+13. [IndoLeX — frekuensi leksikal (Kaggle, CC BY-NC-SA 4.0)](https://www.kaggle.com/datasets/binhashem/indolex-indonesian-academic-lexical-dataset)
+14. [nasalsabila — kamus-alay](https://github.com/nasalsabila/kamus-alay)
+15. [Leipzig Corpora Collection — ind_mixed_2013 (korpus kalimat)](https://downloads.wortschatz-leipzig.de/corpora/ind_mixed_2013_1M.tar.gz)
+16. Baku/nonbaku, sinonim, dan antonim pada direktori masing-masing.
 
 Kepemilikan data kamus berada pada **Badan Pengembangan dan Pembinaan Bahasa,
 Kementerian Pendidikan Dasar dan Menengah Republik Indonesia**. Tutur ini
@@ -358,4 +369,5 @@ Dokumentasi dan contoh konsumsi data sumber tetap tersedia di:
 - [`data/indolex/`](data/indolex/)
 - [`data/kamus-alay/`](data/kamus-alay/)
 - [`data/kbbi-v6/`](data/kbbi-v6/)
+- [`data/kaikki/`](data/kaikki/)
 - [`data/data-raw/`](data/data-raw/)

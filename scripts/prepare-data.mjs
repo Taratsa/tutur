@@ -1,4 +1,5 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
+import { gunzipSync } from "node:zlib";
 import { createSlugMap } from "../shared/src/slug.ts";
 import { groupDictionaryRecords } from "../shared/src/grouping.ts";
 import { definitionToText, sanitizeDefinition, truncateText } from "../shared/src/sanitize.ts";
@@ -14,11 +15,44 @@ const sourcePaths = {
   indolex: new URL("data/indolex/indolex__JSON.json", root),
   alay: new URL("data/kamus-alay/dictionary_kamus_alay__JSON.json", root),
   v6: new URL("data/kbbi-v6/kbbi_v6__JSON.json", root),
+  etymology: new URL("data/etymology-db/etymology_db_indonesian__JSON.json", root),
+  kaikki: new URL("data/kaikki/kaikki.org-dictionary-Indonesian.jsonl.gz", root),
 };
 const outputDirectory = new URL("../build/data/", import.meta.url);
 
 const FAMILY_MEMBER_LIMIT = 40;
 const EXTRAS_LIMITS = { examples: 12, derivations: 30, compounds: 40, proverbs: 12, idioms: 12 };
+const KAIKKI_LIMITS = { forms: 16, derived: 24, synonyms: 16, pronunciations: 4 };
+const KAIKKI_POS_LABELS = {
+  adj: "Adjektiva",
+  adv: "Adverbia",
+  article: "Artikel",
+  character: "Huruf",
+  classifier: "Penggolong",
+  conjunction: "Konjungsi",
+  conj: "Konjungsi",
+  circumfix: "Konfiks",
+  det: "Determiner",
+  infix: "Infiks",
+  interj: "Interjeksi",
+  intj: "Interjeksi",
+  name: "Nama diri",
+  noun: "Nomina",
+  num: "Numeralia",
+  particle: "Partikel",
+  phrase: "Frasa",
+  post: "Postposisi",
+  postp: "Postposisi",
+  prefix: "Prefiks",
+  prep: "Preposisi",
+  prep_phrase: "Frasa preposisional",
+  pron: "Pronomina",
+  proverb: "Peribahasa",
+  root: "Akar kata",
+  suffix: "Sufiks",
+  symbol: "Simbol",
+  verb: "Verba",
+};
 
 async function readCollection(url, key) {
   const parsed = await Bun.file(url).json();
@@ -27,6 +61,20 @@ async function readCollection(url, key) {
     throw new TypeError(`Expected an array at ${url.pathname}${key ? `#${key}` : ""}`);
   }
   return collection;
+}
+
+async function readJsonLinesGzip(url) {
+  const text = gunzipSync(Buffer.from(await Bun.file(url).arrayBuffer())).toString("utf8");
+  return text
+    .split(/\r?\n/u)
+    .filter(Boolean)
+    .map((line, index) => {
+      try {
+        return JSON.parse(line);
+      } catch (error) {
+        throw new Error(`Invalid JSONL at ${url.pathname}, line ${index + 1}`, { cause: error });
+      }
+    });
 }
 
 function sourceId(record, index) {
@@ -83,6 +131,98 @@ function normalizeSlangRelation(record, index) {
     inDictionary: Boolean(record.in_dictionary),
     categories,
   };
+}
+
+function normalizeEtymologyRelation(record, index) {
+  const term = displayWord(record?.term);
+  const termId = cleanText(record?.term_id);
+  const lang = cleanText(record?.lang);
+  const relationType = cleanText(record?.reltype);
+  if (!term || !normalizeWord(term) || !termId || !lang || !relationType) {
+    throw new Error(`Invalid etymology relation at index ${index}`);
+  }
+  const nullableText = (value) => {
+    const text = cleanText(value);
+    return text || null;
+  };
+  const nullableInteger = (value) => (Number.isInteger(value) ? value : null);
+  return {
+    id: index + 1,
+    termId,
+    lang,
+    term,
+    normalizedTerm: normalizeWord(term),
+    relationType,
+    relatedTermId: nullableText(record.related_term_id),
+    relatedLang: nullableText(record.related_lang),
+    relatedTerm: nullableText(record.related_term),
+    position: nullableInteger(record.position),
+    groupTag: nullableText(record.group_tag),
+    parentTag: nullableText(record.parent_tag),
+    parentPosition: nullableInteger(record.parent_position),
+  };
+}
+
+function uniqueText(values) {
+  const seen = new Set();
+  return values
+    .map((value) => cleanText(value))
+    .filter((value) => value && !seen.has(value) && seen.add(value));
+}
+
+function normalizeKaikkiEntry(record, index) {
+  if (record?.lang_code !== "id") return null;
+  const word = displayWord(record.word);
+  const normalizedWord = normalizeWord(word);
+  if (!normalizedWord) throw new Error(`Invalid Kaikki entry at index ${index}`);
+  const forms = (Array.isArray(record.forms) ? record.forms : [])
+    .map((form) => ({
+      text: displayWord(form?.form),
+      tags: uniqueText(Array.isArray(form?.tags) ? form.tags : []),
+    }))
+    .filter((form) => form.text)
+    .slice(0, KAIKKI_LIMITS.forms);
+  const pronunciations = uniqueText(
+    (Array.isArray(record.sounds) ? record.sounds : []).map((sound) => sound?.ipa),
+  ).slice(0, KAIKKI_LIMITS.pronunciations);
+  const derived = uniqueText(
+    (Array.isArray(record.derived) ? record.derived : []).map((item) => item?.word),
+  ).slice(0, KAIKKI_LIMITS.derived);
+  const synonyms = uniqueText(
+    (Array.isArray(record.senses) ? record.senses : []).flatMap((sense) =>
+      Array.isArray(sense?.synonyms) ? sense.synonyms.map((item) => item?.word) : [],
+    ),
+  ).slice(0, KAIKKI_LIMITS.synonyms);
+  return {
+    id: index + 1,
+    word,
+    normalizedWord,
+    partOfSpeech:
+      cleanText(record.pos_title) ||
+      KAIKKI_POS_LABELS[record.pos] ||
+      cleanText(record.pos) ||
+      "Kelas kata tidak diketahui",
+    etymology: cleanText(record.etymology_text) || null,
+    pronunciations,
+    forms,
+    derived,
+    synonyms,
+  };
+}
+
+function buildKaikkiEntries(records, canonicalWords) {
+  return records
+    .map(normalizeKaikkiEntry)
+    .filter(
+      (entry) =>
+        entry &&
+        canonicalWords.has(entry.normalizedWord) &&
+        (entry.etymology ||
+          entry.pronunciations.length > 0 ||
+          entry.forms.length > 0 ||
+          entry.derived.length > 0 ||
+          entry.synonyms.length > 0),
+    );
 }
 
 function buildRelated(entries, relations, slugMap) {
@@ -285,6 +425,8 @@ async function main() {
     rawIndolex,
     rawAlay,
     rawV6,
+    rawEtymology,
+    rawKaikki,
   ] = await Promise.all([
     readCollection(sourcePaths.dictionary, "dictionary"),
     readCollection(sourcePaths.baku, "quiz_baku"),
@@ -294,18 +436,24 @@ async function main() {
     readCollection(sourcePaths.indolex, "indolex"),
     readCollection(sourcePaths.alay, "dictionary_kamus_alay"),
     readCollection(sourcePaths.v6, null),
+    readCollection(sourcePaths.etymology, "etymology_db_indonesian"),
+    readJsonLinesGzip(sourcePaths.kaikki),
   ]);
 
   const groups = groupDictionaryRecords(
     [...rawDictionary].sort((left, right) => Number(left._id) - Number(right._id)),
   );
   const slugData = createSlugMap(groups.map((group) => group.normalizedWord));
+  const canonicalWords = new Set(groups.map((group) => group.normalizedWord));
   const relations = {
     baku: rawBaku.map((record, index) => normalizeRelation(record, index, "baku")),
     sinonim: rawSinonim.map((record, index) => normalizeRelation(record, index, "sinonim")),
     antonim: rawAntonim.map((record, index) => normalizeRelation(record, index, "antonim")),
     slang: rawAlay.map((record, index) => normalizeSlangRelation(record, index)),
+    etymology: rawEtymology.map(normalizeEtymologyRelation),
   };
+  const etymology = relations.etymology;
+  const kaikki = buildKaikkiEntries(rawKaikki, canonicalWords);
   const enrichmentByWord = buildEnrichmentIndex(rawEnrichment);
   const formsByRoot = buildFormsByRoot(rawIndolex);
   const families = buildFamilies(formsByRoot, slugData.wordToSlug);
@@ -349,10 +497,23 @@ async function main() {
       extrasEntries: entries.filter((entry) => entry.extras).length,
       familyRoots: families.length,
       familyMembers: families.reduce((sum, family) => sum + family.members.length, 0),
+      etymologyRecords: rawEtymology.length,
+      etymologyTerms: new Set(etymology.map((relation) => relation.normalizedTerm)).size,
+      etymologyLinkedTerms: new Set(
+        etymology
+          .filter((relation) => relation.relatedTerm)
+          .map((relation) => relation.normalizedTerm),
+      ).size,
+      kaikkiRecords: kaikki.length,
+      kaikkiTerms: new Set(kaikki.map((entry) => entry.normalizedWord)).size,
+      kaikkiEtymologyTerms: new Set(
+        kaikki.filter((entry) => entry.etymology).map((entry) => entry.normalizedWord),
+      ).size,
     },
     entries,
     letters,
     relations,
+    kaikki,
     families,
   };
   const wordMap = {

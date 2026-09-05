@@ -140,6 +140,17 @@ function parseCategories(value) {
   return parseList(value).filter((item) => typeof item === "string" && item);
 }
 
+function parseKaikkiForms(value) {
+  return parseList(value)
+    .filter((item) => item && typeof item.text === "string" && item.text)
+    .map((item) => ({
+      text: item.text,
+      tags: Array.isArray(item.tags)
+        ? item.tags.filter((tag) => typeof tag === "string" && tag)
+        : [],
+    }));
+}
+
 export function getWordPage(slug) {
   const entry = db()
     .query(
@@ -157,6 +168,29 @@ export function getWordPage(slug) {
       html: definition.definition_html,
       text: definition.definition_text,
       type: definition.entry_type,
+    }));
+  const etymologyRelations = db()
+    .query(
+      "SELECT relation_type, related_lang, related_term FROM etymology_relations WHERE normalized_term = ? AND substr(relation_type, 1, 6) != 'group_' ORDER BY id",
+    )
+    .all(entry.normalized_word)
+    .map((relation) => ({
+      relationType: relation.relation_type,
+      relatedLang: relation.related_lang,
+      relatedTerm: relation.related_term,
+    }));
+  const kaikkiEntries = db()
+    .query(
+      "SELECT part_of_speech, etymology, pronunciations, forms, derived, synonyms FROM kaikki_entries WHERE normalized_word = ? ORDER BY id",
+    )
+    .all(entry.normalized_word)
+    .map((row) => ({
+      partOfSpeech: row.part_of_speech,
+      etymology: row.etymology,
+      pronunciations: parseCategories(row.pronunciations),
+      forms: parseKaikkiForms(row.forms),
+      derived: parseCategories(row.derived),
+      synonyms: parseCategories(row.synonyms),
     }));
   const previous = db()
     .query(
@@ -211,6 +245,8 @@ export function getWordPage(slug) {
     rootWord: rootEntry?.word ?? null,
     rootSlug: rootEntry?.slug ?? null,
     definitions,
+    etymologyRelations,
+    kaikkiEntries,
     extras: extras
       ? {
           pronunciation: extras.pronunciation,

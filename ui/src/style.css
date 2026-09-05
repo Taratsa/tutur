@@ -1121,6 +1121,74 @@ main {
   font-weight: 500;
 }
 
+.etymology-note {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.etymology-list .example-kind,
+.etymology-list p {
+  overflow-wrap: anywhere;
+}
+
+.etymology-list .example-kind {
+  text-transform: none;
+}
+
+.kaikki-list {
+  display: grid;
+  gap: 18px;
+}
+
+.kaikki-entry {
+  padding: 18px 0;
+  border-top: 1px solid var(--line-strong);
+}
+
+.kaikki-entry:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.kaikki-entry-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px 18px;
+  margin-bottom: 10px;
+}
+
+.kaikki-entry-header strong {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.kaikki-entry-header span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.kaikki-entry p {
+  max-width: 76ch;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.kaikki-entry p b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.kaikki-entry small {
+  color: var(--quiet);
+  font-size: 12px;
+}
+
 /* Popular words page. */
 .populer-list {
   margin: 34px 0 0;

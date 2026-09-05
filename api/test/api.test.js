@@ -17,6 +17,12 @@ const fixture = {
     extrasEntries: 1,
     familyRoots: 1,
     familyMembers: 1,
+    etymologyRecords: 1,
+    etymologyTerms: 1,
+    etymologyLinkedTerms: 1,
+    kaikkiRecords: 1,
+    kaikkiTerms: 1,
+    kaikkiEtymologyTerms: 1,
   },
   entries: [
     {
@@ -119,7 +125,37 @@ const fixture = {
         categories: ["abreviasi"],
       },
     ],
+    etymology: [
+      {
+        id: 1,
+        termId: "bahasa-term",
+        lang: "Indonesian",
+        term: "bahasa",
+        normalizedTerm: "bahasa",
+        relationType: "inherited_from",
+        relatedTermId: "melayu-term",
+        relatedLang: "Malay",
+        relatedTerm: "bahasa",
+        position: 0,
+        groupTag: null,
+        parentTag: null,
+        parentPosition: null,
+      },
+    ],
   },
+  kaikki: [
+    {
+      id: 1,
+      word: "bahasa",
+      normalizedWord: "bahasa",
+      partOfSpeech: "Nomina",
+      etymology: "Inherited from Malay bahasa.",
+      pronunciations: ["/baˈhasa/"],
+      forms: [{ text: "bahasa-bahasa", tags: ["plural"] }],
+      derived: ["berbahasa"],
+      synonyms: ["tuturan"],
+    },
+  ],
   families: [
     {
       root: "bahasa",
@@ -152,6 +188,30 @@ test("exact, prefix, and relation searches return canonical URLs", async () => {
     477569,
   );
   expect(db.query("SELECT COUNT(*) AS count FROM entry_extras").get().count).toBe(1);
+  expect(db.query("SELECT COUNT(*) AS count FROM etymology_relations").get().count).toBe(1);
+  expect(db.query("SELECT COUNT(*) AS count FROM kaikki_entries").get().count).toBe(1);
+  expect(
+    db
+      .query(
+        "SELECT part_of_speech, etymology, forms FROM kaikki_entries WHERE normalized_word = 'bahasa'",
+      )
+      .get(),
+  ).toEqual({
+    part_of_speech: "Nomina",
+    etymology: "Inherited from Malay bahasa.",
+    forms: JSON.stringify([{ text: "bahasa-bahasa", tags: ["plural"] }]),
+  });
+  expect(
+    db
+      .query(
+        "SELECT relation_type, related_lang, related_term FROM etymology_relations WHERE normalized_term = 'bahasa'",
+      )
+      .get(),
+  ).toEqual({
+    relation_type: "inherited_from",
+    related_lang: "Malay",
+    related_term: "bahasa",
+  });
   expect(db.query("SELECT COUNT(*) AS count FROM word_families").get().count).toBe(1);
   expect(db.query("SELECT COUNT(*) AS count FROM slang_relations").get().count).toBe(1);
   const exact = await app.request("http://localhost/api/search?q=bahasa&limit=20");

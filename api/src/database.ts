@@ -102,6 +102,32 @@ function createSchema(db: Database): string {
       proverbs TEXT NOT NULL,
       idioms TEXT NOT NULL
     );
+    CREATE TABLE etymology_relations (
+      id INTEGER PRIMARY KEY,
+      term_id TEXT NOT NULL,
+      lang TEXT NOT NULL,
+      term TEXT NOT NULL,
+      normalized_term TEXT NOT NULL,
+      relation_type TEXT NOT NULL,
+      related_term_id TEXT,
+      related_lang TEXT,
+      related_term TEXT,
+      position INTEGER,
+      group_tag TEXT,
+      parent_tag TEXT,
+      parent_position INTEGER
+    );
+    CREATE TABLE kaikki_entries (
+      id INTEGER PRIMARY KEY,
+      word TEXT NOT NULL,
+      normalized_word TEXT NOT NULL,
+      part_of_speech TEXT NOT NULL,
+      etymology TEXT,
+      pronunciations TEXT NOT NULL,
+      forms TEXT NOT NULL,
+      derived TEXT NOT NULL,
+      synonyms TEXT NOT NULL
+    );
     CREATE TABLE search_entries (
       id INTEGER PRIMARY KEY,
       collection TEXT NOT NULL CHECK(collection IN ('dictionary', 'baku', 'sinonim', 'antonim', 'slang')),
@@ -192,6 +218,10 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
   const insertSlang = db.prepare("INSERT INTO slang_relations VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
   const insertFamily = db.prepare("INSERT INTO word_families VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
   const insertExtras = db.prepare("INSERT INTO entry_extras VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+  const insertEtymology = db.prepare(
+    "INSERT INTO etymology_relations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const insertKaikki = db.prepare("INSERT INTO kaikki_entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
   const insertSearch = db.prepare(
     "INSERT INTO search_entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
@@ -258,6 +288,38 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
         searchId - 1,
         searchId - 1,
         `${entry.normalizedWord} ${entry.definitions.map((definition) => definition.text).join(" ")}`,
+      );
+    }
+
+    for (const relation of data.relations.etymology ?? []) {
+      insertEtymology.run(
+        relation.id,
+        relation.termId,
+        relation.lang,
+        relation.term,
+        relation.normalizedTerm,
+        relation.relationType,
+        relation.relatedTermId,
+        relation.relatedLang,
+        relation.relatedTerm,
+        relation.position,
+        relation.groupTag,
+        relation.parentTag,
+        relation.parentPosition,
+      );
+    }
+
+    for (const entry of data.kaikki ?? []) {
+      insertKaikki.run(
+        entry.id,
+        entry.word,
+        entry.normalizedWord,
+        entry.partOfSpeech,
+        entry.etymology,
+        JSON.stringify(entry.pronunciations),
+        JSON.stringify(entry.forms),
+        JSON.stringify(entry.derived),
+        JSON.stringify(entry.synonyms),
       );
     }
 
@@ -424,6 +486,8 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
     CREATE INDEX idx_slang_normalized_slang ON slang_relations(normalized_slang);
     CREATE INDEX idx_slang_formal_slug ON slang_relations(formal_slug);
     CREATE INDEX idx_families_root ON word_families(normalized_root, frequency DESC);
+    CREATE INDEX idx_etymology_normalized_term ON etymology_relations(normalized_term, id);
+    CREATE INDEX idx_kaikki_normalized_word ON kaikki_entries(normalized_word, id);
     CREATE INDEX idx_baku_word_slug ON baku_relations(word_slug);
     CREATE INDEX idx_baku_wrong_slug ON baku_relations(wrong_slug);
     CREATE INDEX idx_sinonim_word_slug ON synonym_relations(word_slug);
@@ -444,6 +508,12 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
   metadata.run("extrasEntries", String(data.stats.extrasEntries ?? 0));
   metadata.run("familyRoots", String(data.stats.familyRoots ?? 0));
   metadata.run("familyMembers", String(data.stats.familyMembers ?? 0));
+  metadata.run("etymologyRecords", String(data.stats.etymologyRecords ?? 0));
+  metadata.run("etymologyTerms", String(data.stats.etymologyTerms ?? 0));
+  metadata.run("etymologyLinkedTerms", String(data.stats.etymologyLinkedTerms ?? 0));
+  metadata.run("kaikkiRecords", String(data.stats.kaikkiRecords ?? 0));
+  metadata.run("kaikkiTerms", String(data.stats.kaikkiTerms ?? 0));
+  metadata.run("kaikkiEtymologyTerms", String(data.stats.kaikkiEtymologyTerms ?? 0));
   metadata.run("searchRecords", String(searchId - 1));
   db.exec("PRAGMA optimize;");
   db.close();
