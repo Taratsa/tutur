@@ -48,3 +48,6 @@ data/kamus-alay/*
 data/kbbi-v6/*
 !data/kbbi-v6/README.md
 !data/kbbi-v6/kbbi_v6__JSON.json
+
+### Korpus Leipzig besar: diambil via scripts/fetch-leipzig.ts, tidak di-commit
+data/leipzig/*.json

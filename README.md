@@ -339,7 +339,8 @@ di repositori ini antara lain:
 11. [raf555 — KBBI-api](https://github.com/raf555/kbbi-api)
 12. [IndoLeX — frekuensi leksikal (Kaggle, CC BY-NC-SA 4.0)](https://www.kaggle.com/datasets/binhashem/indolex-indonesian-academic-lexical-dataset)
 13. [nasalsabila — kamus-alay](https://github.com/nasalsabila/kamus-alay)
-14. Baku/nonbaku, sinonim, dan antonim pada direktori masing-masing.
+14. [Leipzig Corpora Collection — ind_mixed_2013 (korpus kalimat)](https://downloads.wortschatz-leipzig.de/corpora/ind_mixed_2013_1M.tar.gz)
+15. Baku/nonbaku, sinonim, dan antonim pada direktori masing-masing.
 
 Kepemilikan data kamus berada pada **Badan Pengembangan dan Pembinaan Bahasa,
 Kementerian Pendidikan Dasar dan Menengah Republik Indonesia**. Tutur ini
