@@ -22,7 +22,13 @@ const outputDirectory = new URL("../build/data/", import.meta.url);
 
 const FAMILY_MEMBER_LIMIT = 40;
 const EXTRAS_LIMITS = { examples: 12, derivations: 30, compounds: 40, proverbs: 12, idioms: 12 };
-const KAIKKI_LIMITS = { forms: 16, derived: 24, synonyms: 16, pronunciations: 4 };
+const KAIKKI_LIMITS = {
+  forms: 16,
+  derived: 24,
+  synonyms: 16,
+  pronunciations: 4,
+  hyphenations: 4,
+};
 const KAIKKI_POS_LABELS = {
   adj: "Adjektiva",
   adv: "Adverbia",
@@ -170,6 +176,22 @@ function uniqueText(values) {
     .filter((value) => value && !seen.has(value) && seen.add(value));
 }
 
+function normalizeSyllabification(value) {
+  return cleanText(value).replace(/[.‧]/gu, "·");
+}
+
+function syllabifiedHeadword(text, word) {
+  const pattern = [...word]
+    .map((character) => {
+      const escaped = character.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+      if (/\p{L}|\p{N}/u.test(character)) return `${escaped}[·.]?`;
+      return /\s/u.test(character) ? "\\s+" : escaped;
+    })
+    .join("");
+  const candidate = text.match(new RegExp(`^\\d*(${pattern})`, "iu"))?.[1] ?? "";
+  return /[·.]/u.test(candidate) ? normalizeSyllabification(candidate) : null;
+}
+
 function normalizeKaikkiEntry(record, index) {
   if (record?.lang_code !== "id") return null;
   const word = displayWord(record.word);
@@ -185,6 +207,14 @@ function normalizeKaikkiEntry(record, index) {
   const pronunciations = uniqueText(
     (Array.isArray(record.sounds) ? record.sounds : []).map((sound) => sound?.ipa),
   ).slice(0, KAIKKI_LIMITS.pronunciations);
+  const hyphenations = uniqueText([
+    ...(Array.isArray(record.hyphenation) ? record.hyphenation : []),
+    ...(Array.isArray(record.hyphenations) ? record.hyphenations : []).map((item) =>
+      Array.isArray(item?.parts) ? item.parts.join("·") : "",
+    ),
+  ])
+    .map(normalizeSyllabification)
+    .slice(0, KAIKKI_LIMITS.hyphenations);
   const derived = uniqueText(
     (Array.isArray(record.derived) ? record.derived : []).map((item) => item?.word),
   ).slice(0, KAIKKI_LIMITS.derived);
@@ -204,6 +234,7 @@ function normalizeKaikkiEntry(record, index) {
       "Kelas kata tidak diketahui",
     etymology: cleanText(record.etymology_text) || null,
     pronunciations,
+    hyphenations,
     forms,
     derived,
     synonyms,
@@ -219,6 +250,7 @@ function buildKaikkiEntries(records, canonicalWords) {
         canonicalWords.has(entry.normalizedWord) &&
         (entry.etymology ||
           entry.pronunciations.length > 0 ||
+          entry.hyphenations.length > 0 ||
           entry.forms.length > 0 ||
           entry.derived.length > 0 ||
           entry.synonyms.length > 0),
@@ -461,6 +493,7 @@ async function main() {
 
   const entries = groups.map((group) => {
     const enrichment = enrichmentByWord.get(group.normalizedWord) ?? null;
+    const definitions = group.records.map(makeDefinition);
     return {
       id: group.records[0]._id,
       word: group.word,
@@ -468,7 +501,10 @@ async function main() {
       slug: slugData.wordToSlug.get(group.normalizedWord),
       letter: wordLetter(group.normalizedWord),
       tokenText: tokenText(group.normalizedWord),
-      definitions: group.records.map(makeDefinition),
+      definitions,
+      syllabifications: uniqueText(
+        definitions.map((definition) => syllabifiedHeadword(definition.text, group.word)),
+      ),
       frequency: enrichment?.frequency ?? null,
       root: enrichment?.root || null,
       rootRank: enrichment?.rootRank ?? null,
@@ -508,6 +544,9 @@ async function main() {
       kaikkiTerms: new Set(kaikki.map((entry) => entry.normalizedWord)).size,
       kaikkiEtymologyTerms: new Set(
         kaikki.filter((entry) => entry.etymology).map((entry) => entry.normalizedWord),
+      ).size,
+      kaikkiHyphenationTerms: new Set(
+        kaikki.filter((entry) => entry.hyphenations.length).map((entry) => entry.normalizedWord),
       ).size,
     },
     entries,

@@ -23,6 +23,7 @@ const fixture = {
     kaikkiRecords: 1,
     kaikkiTerms: 1,
     kaikkiEtymologyTerms: 1,
+    kaikkiHyphenationTerms: 1,
   },
   entries: [
     {
@@ -32,6 +33,7 @@ const fixture = {
       slug: "sakola",
       letter: "s",
       definitions: [{ id: 3, type: 1, html: "<b>sakola</b>", text: "sistem pendidikan" }],
+      syllabifications: [],
       frequency: null,
       root: null,
       rootRank: null,
@@ -44,6 +46,7 @@ const fixture = {
       slug: "bahasa",
       letter: "b",
       definitions: [{ id: 1, type: 1, html: "<b>bahasa</b>", text: "sistem lambang bunyi" }],
+      syllabifications: ["ba·ha·sa"],
       frequency: 477569,
       root: "bahasa",
       rootRank: 9,
@@ -67,6 +70,7 @@ const fixture = {
       definitions: [
         { id: 2, type: 1, html: "<b>bahasa-baku</b>", text: "bahasa yang sesuai kaidah" },
       ],
+      syllabifications: [],
       frequency: 12,
       root: null,
       rootRank: null,
@@ -151,6 +155,7 @@ const fixture = {
       partOfSpeech: "Nomina",
       etymology: "Inherited from Malay bahasa.",
       pronunciations: ["/baˈhasa/"],
+      hyphenations: ["ba·ha·sa"],
       forms: [{ text: "bahasa-bahasa", tags: ["plural"] }],
       derived: ["berbahasa"],
       synonyms: ["tuturan"],

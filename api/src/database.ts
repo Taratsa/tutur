@@ -22,7 +22,8 @@ function createSchema(db: Database): string {
       summary TEXT NOT NULL,
       frequency INTEGER,
       root TEXT,
-      root_rank INTEGER
+      root_rank INTEGER,
+      syllabifications TEXT NOT NULL
     );
     CREATE TABLE definitions (
       id INTEGER PRIMARY KEY,
@@ -124,6 +125,7 @@ function createSchema(db: Database): string {
       part_of_speech TEXT NOT NULL,
       etymology TEXT,
       pronunciations TEXT NOT NULL,
+      hyphenations TEXT NOT NULL,
       forms TEXT NOT NULL,
       derived TEXT NOT NULL,
       synonyms TEXT NOT NULL
@@ -206,7 +208,7 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
   const entryByWord = new Map(data.entries.map((entry) => [entry.normalizedWord, entry]));
   const slugFor = (normalized: string): string | null => entryByWord.get(normalized)?.slug ?? null;
 
-  const insertEntry = db.prepare("INSERT INTO entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+  const insertEntry = db.prepare("INSERT INTO entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
   const insertDefinition = db.prepare("INSERT INTO definitions VALUES (?, ?, ?, ?, ?, ?)");
   const insertBaku = db.prepare("INSERT INTO baku_relations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
   const insertSinonim = db.prepare(
@@ -221,7 +223,9 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
   const insertEtymology = db.prepare(
     "INSERT INTO etymology_relations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
-  const insertKaikki = db.prepare("INSERT INTO kaikki_entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+  const insertKaikki = db.prepare(
+    "INSERT INTO kaikki_entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
   const insertSearch = db.prepare(
     "INSERT INTO search_entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
@@ -247,6 +251,7 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
         entry.frequency ?? null,
         entry.root ?? null,
         entry.rootRank ?? null,
+        JSON.stringify(entry.syllabifications),
       );
       for (let index = 0; index < entry.definitions.length; index += 1) {
         const definition = entry.definitions[index]!;
@@ -317,6 +322,7 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
         entry.partOfSpeech,
         entry.etymology,
         JSON.stringify(entry.pronunciations),
+        JSON.stringify(entry.hyphenations),
         JSON.stringify(entry.forms),
         JSON.stringify(entry.derived),
         JSON.stringify(entry.synonyms),
@@ -514,6 +520,7 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
   metadata.run("kaikkiRecords", String(data.stats.kaikkiRecords ?? 0));
   metadata.run("kaikkiTerms", String(data.stats.kaikkiTerms ?? 0));
   metadata.run("kaikkiEtymologyTerms", String(data.stats.kaikkiEtymologyTerms ?? 0));
+  metadata.run("kaikkiHyphenationTerms", String(data.stats.kaikkiHyphenationTerms ?? 0));
   metadata.run("searchRecords", String(searchId - 1));
   db.exec("PRAGMA optimize;");
   db.close();

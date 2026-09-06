@@ -51,6 +51,7 @@ export function getSiteStats() {
     extrasEntries: metadata.extrasEntries,
     familyRoots: metadata.familyRoots,
     familyMembers: metadata.familyMembers,
+    kaikkiHyphenationTerms: metadata.kaikkiHyphenationTerms,
     letters,
   };
 }
@@ -171,7 +172,7 @@ function parseKaikkiForms(value) {
 export function getWordPage(slug) {
   const entry = db()
     .query(
-      "SELECT id, word, normalized_word, slug, letter, summary, frequency, root, root_rank FROM entries WHERE slug = ?",
+      "SELECT id, word, normalized_word, slug, letter, summary, frequency, root, root_rank, syllabifications FROM entries WHERE slug = ?",
     )
     .get(slug);
   if (!entry) return null;
@@ -198,13 +199,14 @@ export function getWordPage(slug) {
     }));
   const kaikkiEntries = db()
     .query(
-      "SELECT part_of_speech, etymology, pronunciations, forms, derived, synonyms FROM kaikki_entries WHERE normalized_word = ? ORDER BY id",
+      "SELECT part_of_speech, etymology, pronunciations, hyphenations, forms, derived, synonyms FROM kaikki_entries WHERE normalized_word = ? ORDER BY id",
     )
     .all(entry.normalized_word)
     .map((row) => ({
       partOfSpeech: row.part_of_speech,
       etymology: row.etymology,
       pronunciations: parseCategories(row.pronunciations),
+      hyphenations: parseCategories(row.hyphenations),
       forms: parseKaikkiForms(row.forms),
       derived: parseCategories(row.derived),
       synonyms: parseCategories(row.synonyms),
@@ -259,6 +261,7 @@ export function getWordPage(slug) {
     frequency: entry.frequency,
     root: entry.root,
     rootRank: entry.root_rank,
+    syllabifications: parseCategories(entry.syllabifications),
     rootWord: rootEntry?.word ?? null,
     rootSlug: rootEntry?.slug ?? null,
     definitions,
@@ -281,6 +284,40 @@ export function getWordPage(slug) {
     related: relatedWords(entry),
     previous,
     next,
+  };
+}
+
+export function getWordCard(slug) {
+  const entry = db()
+    .query(
+      "SELECT id, word, normalized_word, summary, syllabifications FROM entries WHERE slug = ?",
+    )
+    .get(slug);
+  if (!entry) return null;
+  const kbbiPronunciation = db()
+    .query("SELECT pronunciation FROM entry_extras WHERE entry_id = ?")
+    .get(entry.id)?.pronunciation;
+  const kaikki = db()
+    .query("SELECT pronunciations, hyphenations FROM kaikki_entries WHERE normalized_word = ?")
+    .all(entry.normalized_word);
+  return {
+    id: entry.id,
+    word: entry.word,
+    summary: entry.summary,
+    syllabifications: [
+      ...new Set([
+        ...parseCategories(entry.syllabifications),
+        ...kaikki.flatMap((item) => parseCategories(item.hyphenations)),
+      ]),
+    ],
+    pronunciations: [
+      ...new Set([
+        ...(kbbiPronunciation
+          ? [kbbiPronunciation.startsWith("/") ? kbbiPronunciation : `/${kbbiPronunciation}/`]
+          : []),
+        ...kaikki.flatMap((item) => parseCategories(item.pronunciations)),
+      ]),
+    ],
   };
 }
 

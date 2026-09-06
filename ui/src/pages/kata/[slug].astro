@@ -20,6 +20,7 @@ type KaikkiEntry = {
   partOfSpeech: string;
   etymology: string | null;
   pronunciations: string[];
+  hyphenations: string[];
   forms: KaikkiForm[];
   derived: string[];
   synonyms: string[];
@@ -43,6 +44,7 @@ type WordPage = {
   slug: string;
   letter: string;
   summary: string;
+  syllabifications: string[];
   frequency: number | null;
   root: string | null;
   rootRank: number | null;
@@ -78,6 +80,51 @@ const related = entry?.related ?? [];
 const family = entry?.family ?? [];
 const slangForms = entry?.slangForms ?? [];
 const slangTargets = entry?.slangTargets ?? [];
+type ReadingValue = { value: string; sources: string[] };
+const combineReadingValues = (
+  items: { value: string; source: string }[],
+  normalizeSeparators = false,
+) => {
+  const combined = new Map<string, ReadingValue>();
+  for (const item of items) {
+    const value = normalizeSeparators
+      ? item.value.trim().replace(/[.‧]/gu, "·")
+      : item.value.trim();
+    if (!value) continue;
+    const key = value.toLocaleLowerCase("id-ID");
+    const existing = combined.get(key);
+    if (existing) {
+      if (!existing.sources.includes(item.source)) existing.sources.push(item.source);
+    } else {
+      combined.set(key, { value, sources: [item.source] });
+    }
+  }
+  return [...combined.values()];
+};
+const syllabifications = combineReadingValues(
+  [
+    ...(entry?.syllabifications ?? []).map((value) => ({ value, source: "KBBI IV" })),
+    ...kaikkiEntries.flatMap((item) =>
+      item.hyphenations.map((value) => ({ value, source: "Kaikki" })),
+    ),
+  ],
+  true,
+);
+const pronunciations = combineReadingValues([
+  ...(extras?.pronunciation
+    ? [
+        {
+          value: extras.pronunciation.startsWith("/")
+            ? extras.pronunciation
+            : `/${extras.pronunciation}/`,
+          source: "KBBI VI",
+        },
+      ]
+    : []),
+  ...kaikkiEntries.flatMap((item) =>
+    item.pronunciations.map((value) => ({ value, source: "Kaikki · IPA" })),
+  ),
+]);
 const formatNumber = (value: number) => new Intl.NumberFormat("id-ID").format(value ?? 0);
 const etymologyLabels: Record<string, string> = {
   "back-formation_from": "Dibentuk balik dari",
@@ -157,6 +204,8 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
   description={description}
   robots={entry ? "index, follow" : "noindex, follow"}
   canonicalPath={entry ? `/kata/${entry.slug}/` : "/404/"}
+  image={entry ? `/og/kata/${entry.slug}.png` : undefined}
+  imageAlt={entry ? `Arti kata ${entry.word}` : undefined}
   jsonLd={jsonLd}
 >
   {
@@ -182,7 +231,36 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
               Entri kamus
             </p>
             <h1>{entry.word}</h1>
-            {extras?.pronunciation && <p class="word-pronunciation">/{extras.pronunciation}/</p>}
+            {(syllabifications.length > 0 || pronunciations.length > 0) && (
+              <dl class="word-readings">
+                {syllabifications.length > 0 && (
+                  <div>
+                    <dt>Pemenggalan</dt>
+                    <dd>
+                      {syllabifications.map((item: ReadingValue) => (
+                        <span>
+                          <b>{item.value}</b>
+                          <small>{item.sources.join(" + ")}</small>
+                        </span>
+                      ))}
+                    </dd>
+                  </div>
+                )}
+                {pronunciations.length > 0 && (
+                  <div>
+                    <dt>Pelafalan</dt>
+                    <dd>
+                      {pronunciations.map((item: ReadingValue) => (
+                        <span>
+                          <b>{item.value}</b>
+                          <small>{item.sources.join(" + ")}</small>
+                        </span>
+                      ))}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            )}
             <p class="word-normalized">
               Bentuk terindeks: <span>{entry.normalizedWord}</span>
             </p>
@@ -320,9 +398,6 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
                 <article class="kaikki-entry">
                   <header class="kaikki-entry-header">
                     <strong>{item.partOfSpeech}</strong>
-                    {item.pronunciations.length > 0 && (
-                      <span>IPA: {item.pronunciations.join(" · ")}</span>
-                    )}
                   </header>
                   {item.etymology && (
                     <p>

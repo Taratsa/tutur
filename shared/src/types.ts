@@ -51,6 +51,7 @@ export interface KaikkiEntry {
   partOfSpeech: string;
   etymology: string | null;
   pronunciations: string[];
+  hyphenations: string[];
   forms: KaikkiForm[];
   derived: string[];
   synonyms: string[];
@@ -63,6 +64,7 @@ export interface PreparedEntry {
   slug: string;
   letter: string;
   definitions: PreparedDefinition[];
+  syllabifications: string[];
   frequency: number | null;
   root: string | null;
   rootRank: number | null;
@@ -142,6 +144,7 @@ export interface PreparedStats {
   kaikkiRecords?: number;
   kaikkiTerms?: number;
   kaikkiEtymologyTerms?: number;
+  kaikkiHyphenationTerms?: number;
 }
 
 export interface PreparedData {

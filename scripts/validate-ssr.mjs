@@ -122,7 +122,9 @@ try {
     !/Berakar pada/u.test(etymologyHtml) ||
     !/<h2 id="kaikki-title">Data leksikal<\/h2>/u.test(etymologyHtml) ||
     !/Wiktextract/u.test(etymologyHtml) ||
-    !/IPA:/u.test(etymologyHtml)
+    !/Pemenggalan/u.test(etymologyHtml) ||
+    !/Pelafalan/u.test(etymologyHtml) ||
+    !/Kaikki · IPA/u.test(etymologyHtml)
   )
     throw new Error("Etymology word page is missing structured source relations or Kaikki data");
 
@@ -132,7 +134,8 @@ try {
     kaikki.status !== 200 ||
     !/<h2 id="kaikki-title">Data leksikal<\/h2>/u.test(kaikkiHtml) ||
     !/Borrowed from Dutch thesaurus/u.test(kaikkiHtml) ||
-    !/IPA:/u.test(kaikkiHtml)
+    !/te·sau·rus/u.test(kaikkiHtml) ||
+    !/Kaikki · IPA/u.test(kaikkiHtml)
   )
     throw new Error("Kaikki enrichment is missing from the tesaurus word page");
 
