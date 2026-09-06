@@ -19,6 +19,9 @@ const dbSlugs = new Set(
     .all()
     .map((row) => row.slug),
 );
+const graphCorpusSentences = Number(
+  db.query("SELECT value FROM metadata WHERE key = 'graphCorpusSentences'").get()?.value ?? 0,
+);
 db.close();
 
 if (
@@ -67,6 +70,9 @@ try {
     (wordHtml.match(/<h1>/gu) || []).length !== 1 ||
     !/<h1>bahasa<\/h1>/u.test(wordHtml) ||
     !/<ol class="definitions">[\s\S]*<li>/u.test(wordHtml) ||
+    !wordHtml.includes(
+      `dalam ${new Intl.NumberFormat("id-ID").format(graphCorpusSentences)} kalimat korpus`,
+    ) ||
     /SearchIsland/u.test(wordHtml) ||
     (wordHtml.match(/<script[^>]+type="module"/gu) || []).length > 1
   ) {

@@ -239,7 +239,8 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
                   <>
                     <strong>Korpus</strong>
                     <p>
-                      Muncul {graph.sentences}× dalam 100.000 kalimat korpus Leipzig ind_mixed_2013.
+                      Muncul {graph.sentences}× dalam {formatNumber(graph.corpusSentences)} kalimat
+                      korpus Leipzig ind_mixed_2013.
                     </p>
                   </>
                 </div>

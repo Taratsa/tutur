@@ -294,11 +294,17 @@ export function getPopularWords(limit = 100) {
 }
 
 export function getWordGraph(slug) {
-  const row = db().query("SELECT data FROM word_graphs WHERE slug = ?").get(slug);
+  const row = db()
+    .query(
+      "SELECT data, (SELECT value FROM metadata WHERE key = 'graphCorpusSentences') AS corpus_sentences FROM word_graphs WHERE slug = ?",
+    )
+    .get(slug);
   if (!row) return null;
   try {
     const parsed = JSON.parse(row.data);
-    return Array.isArray(parsed.nodes) && parsed.nodes.length > 0 ? parsed : null;
+    return Array.isArray(parsed.nodes) && parsed.nodes.length > 0
+      ? { ...parsed, corpusSentences: Number(row.corpus_sentences) || 0 }
+      : null;
   } catch {
     return null;
   }

@@ -321,6 +321,7 @@ if (corpusAvailable) {
 
 const output = {
   corpus: corpusAvailable ? "ind_mixed_2013" : null,
+  corpusSentences: corpusAvailable ? sentenceRows.length : 0,
   anchors: Object.keys(graphs).length,
   graphs,
 };
