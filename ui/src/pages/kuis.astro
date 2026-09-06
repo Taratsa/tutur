@@ -1,0 +1,206 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PageHero from "../components/PageHero.astro";
+import { loadSiteData } from "../lib/build-data.js";
+import { sitePath } from "../lib/site.js";
+import type { PreparedData } from "@tutur/shared/types";
+
+export const prerender = true;
+
+const data = (await loadSiteData()) as PreparedData;
+const relations = data.relations.baku;
+const entriesByWord = new Map(data.entries.map((entry) => [entry.normalizedWord, entry]));
+const questionPool = relations.flatMap((relation) => {
+  const definition = entriesByWord
+    .get(relation.normalizedWord)
+    ?.definitions[0]?.text?.replace(/\s+/gu, " ")
+    .trim();
+  return definition ? [{ correct: relation.word, wrong: relation.wrong, definition }] : [];
+});
+if (!questionPool.length) throw new Error("Baku relation dataset is empty");
+
+const questionCount = Math.min(10, questionPool.length);
+const questions = Array.from({ length: questionCount }, (_, index) => {
+  return questionPool[Math.floor((index * questionPool.length) / questionCount)];
+});
+const firstQuestion = questions[0];
+---
+
+<BaseLayout
+  title="Kuis Bahasa Indonesia | Tutur"
+  description="Latihan memilih kata baku dan membedakannya dari bentuk nonbaku."
+  canonicalPath="/kuis/"
+  currentPath="/kuis/"
+>
+  <PageHero
+    eyebrow="Latihan bahasa"
+    title="Kuis kata."
+    description="Pilih bentuk baku dari dua pilihan dan lihat skor kamu."
+  />
+
+  <section
+    class="section-wrap quiz-page"
+    data-quiz
+    data-questions={JSON.stringify(questions)}
+    aria-labelledby="quiz-title"
+  >
+    <header class="quiz-heading">
+      <div>
+        <p class="eyebrow"><span></span>Kuis 01 · Baku & Nonbaku</p>
+        <h2 id="quiz-title">Pilih kata baku.</h2>
+        <p>Setiap soal menampilkan satu pasangan kata. Pilih bentuk yang sesuai kaidah.</p>
+      </div>
+      <div class="quiz-progress" aria-label="Kemajuan kuis">
+        <span><strong id="quiz-progress">1 / {questions.length}</strong> soal</span>
+        <span>Skor <strong id="quiz-score">0</strong></span>
+      </div>
+    </header>
+
+    <div class="quiz-board">
+      <p id="quiz-prompt" class="quiz-prompt">Manakah kata baku?</p>
+      <div class="quiz-definition" hidden>
+        <p class="quiz-definition-label">Definisi kata baku</p>
+        <p id="quiz-definition">{firstQuestion.definition}</p>
+      </div>
+      <div class="quiz-options" id="quiz-options" role="group" aria-labelledby="quiz-prompt">
+        <button type="button" class="quiz-option">{firstQuestion.correct}</button>
+        <button type="button" class="quiz-option">{firstQuestion.wrong}</button>
+      </div>
+      <div id="quiz-feedback" class="quiz-feedback" aria-live="polite" hidden></div>
+      <button id="quiz-next" class="primary-button quiz-next" type="button" hidden>
+        Pertanyaan berikutnya
+      </button>
+    </div>
+
+    <p class="quiz-note">
+      Pasangan kata berasal dari <a href={sitePath("/search/?type=baku")}>koleksi Baku & Nonbaku</a>
+      {" "}Tutur.
+    </p>
+    <noscript
+      ><p class="quiz-noscript">
+        Aktifkan JavaScript untuk memainkan kuis dan menghitung skor.
+      </p></noscript
+    >
+  </section>
+
+  <script is:inline>
+    const quiz = document.querySelector("[data-quiz]");
+
+    if (quiz instanceof HTMLElement) {
+      const options = quiz.querySelector("#quiz-options");
+      const prompt = quiz.querySelector("#quiz-prompt");
+      const definitionPanel = quiz.querySelector(".quiz-definition");
+      const definition = quiz.querySelector("#quiz-definition");
+      const progress = quiz.querySelector("#quiz-progress");
+      const score = quiz.querySelector("#quiz-score");
+      const feedback = quiz.querySelector("#quiz-feedback");
+      const next = quiz.querySelector("#quiz-next");
+
+      const questionPool = JSON.parse(quiz.dataset.questions || "[]");
+      let questions = [];
+      let current = 0;
+      let points = 0;
+      let answered = false;
+      let finished = false;
+
+      function shuffle(items) {
+        const shuffled = [...items];
+        for (let index = shuffled.length - 1; index > 0; index -= 1) {
+          const swapIndex = Math.floor(Math.random() * (index + 1));
+          [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+        }
+        return shuffled;
+      }
+
+      function renderQuestion(focusFirst = false) {
+        const question = questions[current];
+        answered = false;
+        prompt.textContent = "Manakah kata baku?";
+        definition.textContent = question.definition;
+        definitionPanel.hidden = true;
+        progress.textContent = `${current + 1} / ${questions.length}`;
+        score.textContent = String(points);
+        feedback.hidden = true;
+        feedback.className = "quiz-feedback";
+        next.hidden = true;
+        options.replaceChildren();
+
+        const roundOptions = [
+          { word: question.correct, correct: true },
+          { word: question.wrong, correct: false },
+        ];
+        if (Math.random() < 0.5) roundOptions.reverse();
+
+        for (const option of roundOptions) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "quiz-option";
+          button.dataset.correct = String(option.correct);
+          button.textContent = option.word;
+          button.addEventListener("click", () => answer(option.correct, button));
+          options.append(button);
+        }
+        if (focusFirst) options.querySelector("button")?.focus();
+      }
+
+      function answer(correct, selected) {
+        if (answered) return;
+        answered = true;
+        if (correct) points += 1;
+
+        options.querySelectorAll("button").forEach((button) => {
+          button.disabled = true;
+          if (button.dataset.correct === "true") button.classList.add("is-correct");
+        });
+        if (!correct) selected.classList.add("is-wrong");
+
+        const question = questions[current];
+        definitionPanel.hidden = false;
+        feedback.className = `quiz-feedback ${correct ? "is-correct" : "is-wrong"}`;
+        feedback.textContent = `${correct ? "Benar." : "Belum tepat."} ${question.correct} adalah kata baku; ${question.wrong} adalah bentuk nonbaku.`;
+        feedback.hidden = false;
+        score.textContent = String(points);
+        next.textContent =
+          current === questions.length - 1 ? "Lihat hasil" : "Pertanyaan berikutnya";
+        next.hidden = false;
+        next.focus();
+      }
+
+      function showResult() {
+        finished = true;
+        prompt.textContent = "Kuis selesai.";
+        definitionPanel.hidden = true;
+        progress.textContent = `${questions.length} / ${questions.length}`;
+        feedback.className = "quiz-feedback is-result";
+        feedback.textContent = `Skor kamu ${points} dari ${questions.length}. ${
+          points === questions.length ? "Mantap!" : "Coba lagi untuk meningkatkan skor."
+        }`;
+        feedback.hidden = false;
+        options.replaceChildren();
+        next.textContent = "Ulangi kuis";
+        next.hidden = false;
+      }
+
+      next.addEventListener("click", () => {
+        if (finished) {
+          startQuiz(true);
+        } else if (current === questions.length - 1) {
+          showResult();
+        } else {
+          current += 1;
+          renderQuestion(true);
+        }
+      });
+
+      function startQuiz(focusFirst = false) {
+        questions = shuffle(questionPool);
+        current = 0;
+        points = 0;
+        finished = false;
+        renderQuestion(focusFirst);
+      }
+
+      startQuiz();
+    }
+  </script>
+</BaseLayout>

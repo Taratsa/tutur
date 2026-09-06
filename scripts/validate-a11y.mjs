@@ -48,6 +48,10 @@ async function runSearchInteraction(page) {
   await page.waitForTimeout(300);
 }
 
+async function runQuizInteraction(page) {
+  await page.click(".quiz-option");
+}
+
 const desktopScans = [
   { label: "home", path: "/" },
   { label: "alphabet list", path: "/huruf/a/" },
@@ -55,6 +59,8 @@ const desktopScans = [
   { label: "word page", path: "/kata/bahasa/" },
   { label: "enriched word page", path: "/kata/abu/" },
   { label: "popular words", path: "/populer/" },
+  { label: "word game", path: "/tebak-kata/" },
+  { label: "quiz answered", path: "/kuis/", interact: runQuizInteraction },
   { label: "search idle", path: "/search/" },
   { label: "search results", path: "/search/", interact: runSearchInteraction },
   { label: "about", path: "/about/" },
@@ -67,6 +73,8 @@ const mobileScans = [
   { label: "word page (mobile)", path: "/kata/bahasa/" },
   { label: "enriched word page (mobile)", path: "/kata/abu/" },
   { label: "popular words (mobile)", path: "/populer/" },
+  { label: "word game (mobile)", path: "/tebak-kata/" },
+  { label: "quiz answered (mobile)", path: "/kuis/", interact: runQuizInteraction },
   { label: "search idle (mobile)", path: "/search/" },
 ];
 const viewports = [

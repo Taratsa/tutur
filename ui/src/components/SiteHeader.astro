@@ -23,6 +23,16 @@ const isActive = (path: string) =>
       aria-current={isActive("/search/") ? "page" : undefined}
       href={sitePath("/search/")}><Icon name="search" size={13} />Pencarian</a
     >
+    <a
+      class={isActive("/kuis/") ? "active" : undefined}
+      aria-current={isActive("/kuis/") ? "page" : undefined}
+      href={sitePath("/kuis/")}><Icon name="check" size={13} />Kuis</a
+    >
+    <a
+      class={isActive("/tebak-kata/") ? "active" : undefined}
+      aria-current={isActive("/tebak-kata/") ? "page" : undefined}
+      href={sitePath("/tebak-kata/")}><Icon name="comment" size={13} />Tebak kata</a
+    >
   </nav>
   <a
     class="github-button"

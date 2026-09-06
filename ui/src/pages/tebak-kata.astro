@@ -1,0 +1,220 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { loadSiteData } from "../lib/build-data.js";
+import { sitePath } from "../lib/site.js";
+import type { PreparedData } from "@tutur/shared/types";
+
+export const prerender = true;
+
+const data = (await loadSiteData()) as PreparedData;
+const fiveLetterEntries = data.entries.filter((entry) => /^[a-z]{5}$/u.test(entry.normalizedWord));
+const validWords = [...new Set(fiveLetterEntries.map((entry) => entry.normalizedWord))];
+const answers = fiveLetterEntries
+  .filter((entry) => Number(entry.frequency) >= 1000)
+  .map((entry) => ({ word: entry.normalizedWord, slug: entry.slug }));
+if (answers.length < 2) throw new Error("Five-letter game dataset is empty");
+
+const keyboardRows = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
+---
+
+<BaseLayout
+  title="Tebak Kata | Tutur"
+  description="Permainan tebak kata Bahasa Indonesia lima huruf dengan kata baru pada setiap ronde."
+  canonicalPath="/tebak-kata/"
+  currentPath="/tebak-kata/"
+>
+  <section
+    class="section-wrap word-game-page"
+    data-word-game
+    data-answers={JSON.stringify(answers)}
+    data-valid-words={JSON.stringify(validWords)}
+    data-word-base={sitePath("/kata/")}
+    aria-labelledby="word-game-title"
+  >
+    <header class="word-game-heading">
+      <div>
+        <p class="eyebrow"><span></span>Permainan kata</p>
+        <h1 id="word-game-title">Tebak kata.</h1>
+        <p>Temukan kata Bahasa Indonesia lima huruf dalam enam percobaan.</p>
+      </div>
+      <p class="word-game-progress"><strong id="word-game-attempt">0</strong> / 6</p>
+    </header>
+
+    <div class="word-game-board" aria-hidden="true">
+      {Array.from({ length: 30 }, () => <span class="word-game-cell" />)}
+    </div>
+
+    <form class="word-game-form" id="word-game-form">
+      <label class="sr-only" for="word-game-input">Kata lima huruf</label>
+      <input
+        id="word-game-input"
+        type="text"
+        inputmode="text"
+        minlength="5"
+        maxlength="5"
+        pattern="[A-Za-z]{5}"
+        autocomplete="off"
+        autocapitalize="none"
+        spellcheck="false"
+        placeholder="Lima huruf"
+        required
+      />
+      <button type="submit" class="primary-button">Tebak</button>
+    </form>
+
+    <p id="word-game-status" class="word-game-status" aria-live="polite">
+      Huruf hijau tepat, kuning berada di posisi lain.
+    </p>
+    <a id="word-game-answer" class="word-game-answer" href={sitePath("/")} hidden></a>
+    <button id="word-game-next" class="primary-button word-game-next" type="button" hidden>
+      Kata baru
+    </button>
+
+    <div class="word-game-keyboard" aria-label="Papan ketik">
+      {
+        keyboardRows.map((row) => (
+          <div>
+            {row.split("").map((letter) => (
+              <button type="button" data-key={letter} aria-label={`Huruf ${letter.toUpperCase()}`}>
+                {letter}
+              </button>
+            ))}
+          </div>
+        ))
+      }
+      <div>
+        <button type="button" data-key="Backspace" aria-label="Hapus huruf">⌫</button>
+        <button type="button" data-key="Enter">Enter</button>
+      </div>
+    </div>
+
+    <noscript><p class="word-game-status">Aktifkan JavaScript untuk memainkan gim.</p></noscript>
+  </section>
+
+  <script>
+    import { scoreGuess } from "../lib/word-game.js";
+
+    const game = document.querySelector<HTMLElement>("[data-word-game]");
+    if (game) {
+      type Answer = { word: string; slug: string };
+      const required = <ElementType extends Element>(selector: string) => {
+        const element = game.querySelector<ElementType>(selector);
+        if (!element) throw new Error(`Missing word game element: ${selector}`);
+        return element;
+      };
+      const answers = JSON.parse(game.dataset.answers || "[]") as Answer[];
+      const validWords = new Set<string>(JSON.parse(game.dataset.validWords || "[]"));
+      const cells = [...game.querySelectorAll<HTMLElement>(".word-game-cell")];
+      const form = required<HTMLFormElement>("#word-game-form");
+      const input = required<HTMLInputElement>("#word-game-input");
+      const submit = required<HTMLButtonElement>("#word-game-form button");
+      const attemptLabel = required<HTMLElement>("#word-game-attempt");
+      const status = required<HTMLElement>("#word-game-status");
+      const answerLink = required<HTMLAnchorElement>("#word-game-answer");
+      const next = required<HTMLButtonElement>("#word-game-next");
+      const keys = [...game.querySelectorAll<HTMLButtonElement>("[data-key]")];
+      const rank: Record<string, number> = { absent: 1, present: 2, correct: 3 };
+      const wordBase = game.dataset.wordBase || "/kata/";
+      let answer = answers[0];
+      let attempt = 0;
+      let ended = false;
+
+      const randomIndex = () => crypto.getRandomValues(new Uint32Array(1))[0] % answers.length;
+
+      function setMessage(message: string, state = "") {
+        status.textContent = message;
+        status.className = `word-game-status${state ? ` is-${state}` : ""}`;
+      }
+
+      function finish(won: boolean) {
+        ended = true;
+        input.disabled = true;
+        submit.disabled = true;
+        keys.forEach((key) => (key.disabled = true));
+        setMessage(
+          won
+            ? `Benar — ${answer.word.toUpperCase()}!`
+            : `Belum tepat. Jawabannya ${answer.word.toUpperCase()}.`,
+          won ? "correct" : "failed",
+        );
+        answerLink.href = `${wordBase}${answer.slug}/`;
+        answerLink.textContent = `Lihat arti ${answer.word}`;
+        answerLink.hidden = false;
+        next.hidden = false;
+        next.focus();
+      }
+
+      function submitGuess() {
+        if (ended) return;
+        const guess = input.value.trim().toLocaleLowerCase("id-ID");
+        if (!/^[a-z]{5}$/u.test(guess)) {
+          setMessage("Masukkan tepat lima huruf.", "failed");
+          return;
+        }
+        if (!validWords.has(guess)) {
+          setMessage("Kata itu belum ada di kamus Tutur.", "failed");
+          return;
+        }
+
+        const result = scoreGuess(answer.word, guess);
+        result.forEach((state, index) => {
+          const cell = cells[attempt * 5 + index];
+          cell.textContent = guess[index];
+          cell.dataset.state = state;
+          const key = keys.find((item) => item.dataset.key === guess[index]);
+          if (key && rank[state] > (rank[key.dataset.state || ""] || 0)) key.dataset.state = state;
+        });
+        attempt += 1;
+        attemptLabel.textContent = String(attempt);
+        input.value = "";
+
+        if (guess === answer.word) finish(true);
+        else if (attempt === 6) finish(false);
+        else {
+          setMessage(`${6 - attempt} percobaan tersisa.`);
+          input.focus();
+        }
+      }
+
+      function startRound(focusInput = false) {
+        const previous = answer;
+        answer = answers[randomIndex()];
+        if (previous && answer.word === previous.word)
+          answer = answers[(answers.indexOf(answer) + 1) % answers.length];
+        attempt = 0;
+        ended = false;
+        cells.forEach((cell) => {
+          cell.textContent = "";
+          delete cell.dataset.state;
+        });
+        keys.forEach((key) => {
+          key.disabled = false;
+          delete key.dataset.state;
+        });
+        input.disabled = false;
+        submit.disabled = false;
+        input.value = "";
+        attemptLabel.textContent = "0";
+        answerLink.hidden = true;
+        next.hidden = true;
+        setMessage("Huruf hijau tepat, kuning berada di posisi lain.");
+        if (focusInput) input.focus();
+      }
+
+      form?.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitGuess();
+      });
+      keys.forEach((key) =>
+        key.addEventListener("click", () => {
+          if (key.dataset.key === "Enter") form?.requestSubmit();
+          else if (key.dataset.key === "Backspace") input.value = input.value.slice(0, -1);
+          else if (input.value.length < 5) input.value += key.dataset.key;
+          input.focus();
+        }),
+      );
+      next.addEventListener("click", () => startRound(true));
+      startRound();
+    }
+  </script>
+</BaseLayout>

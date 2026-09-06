@@ -54,6 +54,12 @@ if (!(await stat(searchHtml).catch(() => null)))
 if (!/name="robots" content="noindex, follow"/u.test(await readFile(searchHtml, "utf8")))
   throw new Error("Search page must be noindex,follow");
 
+if (await stat(join(client, "index.html")).catch(() => null))
+  throw new Error("Home page must remain dynamic so its word of the day can rotate");
+const homeSource = await readFile(join(root, "ui", "src/pages/index.astro"), "utf8");
+if (!homeSource.includes("getWordOfDay") || !homeSource.includes("prerender = false"))
+  throw new Error("Home page is not configured for a runtime word of the day");
+
 const populerHtml = join(client, "populer", "index.html");
 if (!(await stat(populerHtml).catch(() => null)))
   throw new Error("Static popular words document is missing");

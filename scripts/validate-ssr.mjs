@@ -77,6 +77,22 @@ try {
   if (!wordResponse.headers.get("cache-control")?.includes("s-maxage=604800"))
     throw new Error("Word response is missing its shared-cache policy");
 
+  const home = await get("/");
+  const homeHtml = await home.text();
+  const jakartaDate = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const dailyWordSlug = homeHtml.match(
+    /<aside class="[^"]*home-word-of-day--hero[^"]*"[\s\S]*?href="[^"]*\/kata\/([^"/]+)\/"/u,
+  )?.[1];
+  if (
+    home.status !== 200 ||
+    !/<h1>Cari arti kata\.<\/h1>/u.test(homeHtml) ||
+    !homeHtml.includes(`<time datetime="${jakartaDate}">`) ||
+    !homeHtml.includes("home-word-of-day--mobile") ||
+    !dailyWordSlug ||
+    !dbSlugs.has(dailyWordSlug)
+  )
+    throw new Error("SSR home page is missing today's linked word");
+
   const enriched = await get("/kata/abu/");
   const enrichedHtml = await enriched.text();
   if (
@@ -178,6 +194,8 @@ try {
   console.log(
     `SSR_METRICS ${JSON.stringify({
       wordRoutes: data.stats.uniqueHeadwords,
+      homeHtmlBytes: Buffer.byteLength(homeHtml),
+      dailyWordSlug,
       representativeWordHtmlBytes: Buffer.byteLength(wordHtml),
       representativeWordJavaScriptModules: (wordHtml.match(/<script[^>]+type="module"/gu) || [])
         .length,

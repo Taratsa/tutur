@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { LETTER_ORDER, WORDS_PER_PAGE, letterPath, pageCount } from "./alphabet.js";
 
 let database;
+let dailyWordCache;
 
 function databaseFile() {
   const configured = process.env.UI_DATABASE_PATH || process.env.SEARCH_DB_PATH;
@@ -52,6 +53,22 @@ export function getSiteStats() {
     familyMembers: metadata.familyMembers,
     letters,
   };
+}
+
+export function getWordOfDay(dayNumber) {
+  if (dailyWordCache?.dayNumber === dayNumber) return dailyWordCache.entry;
+  const where = "frequency >= 100 AND length(word) BETWEEN 4 AND 18 AND instr(word, ' ') = 0";
+  const count =
+    db().query(`SELECT COUNT(*) AS count FROM entries WHERE ${where}`).get()?.count ?? 0;
+  if (!count) return null;
+  const offset = (dayNumber * 7919) % count;
+  const entry = db()
+    .query(
+      `SELECT word, slug, summary FROM entries WHERE ${where} ORDER BY normalized_word LIMIT 1 OFFSET ?`,
+    )
+    .get(offset);
+  dailyWordCache = { dayNumber, entry };
+  return entry;
 }
 
 export function getAvailableLetters() {

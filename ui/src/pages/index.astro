@@ -2,55 +2,67 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Icon from "../lib/Icon.svelte";
 import SearchIsland from "../components/SearchIsland.svelte";
-import { loadSiteData } from "../lib/build-data.js";
+import { getSiteStats, getWordOfDay } from "../lib/server-data.js";
 import { sitePath } from "../lib/site.js";
+import { truncateText } from "@tutur/shared/sanitize";
 
-export const prerender = true;
+export const prerender = false;
 
-const data = await loadSiteData();
+const stats = getSiteStats();
 const formatNumber = (value: number) => new Intl.NumberFormat("id-ID").format(value ?? 0);
+const jakartaDate = new Date(Date.now() + 7 * 60 * 60 * 1000);
+const dayNumber = Math.floor(jakartaDate.getTime() / 86_400_000);
+const wordOfDay = getWordOfDay(dayNumber);
+if (!wordOfDay) throw new Error("No eligible word of the day was found");
+const wordOfDayDate = jakartaDate.toISOString().slice(0, 10);
+const wordOfDayDateLabel = new Intl.DateTimeFormat("id-ID", {
+  day: "numeric",
+  month: "long",
+  timeZone: "Asia/Jakarta",
+}).format(new Date());
+const wordOfDaySummary = truncateText(wordOfDay.summary, 180);
 const collections = [
   {
     route: "/huruf/a/",
     icon: "book",
     title: "Kamus Utama",
     text: "Definisi kata dari KBBI Edisi IV.",
-    count: data.stats.dictionaryRecords,
+    count: stats.dictionaryRecords,
   },
   {
     route: "/search/?type=baku",
     icon: "check",
     title: "Baku & Nonbaku",
     text: "Bentuk baku dan nonbaku.",
-    count: data.stats.bakuRecords,
+    count: stats.bakuRecords,
   },
   {
     route: "/search/?type=sinonim",
     icon: "link",
     title: "Sinonim",
     text: "Kata dengan makna yang mirip.",
-    count: data.stats.sinonimRecords,
+    count: stats.sinonimRecords,
   },
   {
     route: "/search/?type=antonim",
     icon: "swap",
     title: "Antonim",
     text: "Kata dengan makna berlawanan.",
-    count: data.stats.antonimRecords,
+    count: stats.antonimRecords,
   },
   {
     route: "/search/?type=slang",
     icon: "comment",
     title: "Slang",
     text: "Bentuk santai dan bentuk bakunya.",
-    count: data.stats.slangRecords,
+    count: stats.slangRecords,
   },
   {
     route: "/populer/",
     icon: "trend",
     title: "Kata Populer",
     text: "Kata yang paling sering dipakai.",
-    count: data.stats.enrichedWords,
+    count: stats.enrichedWords,
   },
 ];
 ---
@@ -66,9 +78,33 @@ const collections = [
       <h1>Cari arti kata.</h1>
       <p>Cari arti, kata baku, sinonim, dan antonim Bahasa Indonesia.</p>
     </div>
+    <aside class="home-word-of-day home-word-of-day--hero" aria-labelledby="word-of-day-title-hero">
+      <p class="eyebrow">
+        <span></span>Kata hari ini · <time datetime={wordOfDayDate}>{wordOfDayDateLabel}</time>
+      </p>
+      <h2 id="word-of-day-title-hero">{wordOfDay.word}</h2>
+      <p>{wordOfDaySummary}</p>
+      <a href={sitePath(`/kata/${wordOfDay.slug}/`)}>
+        Lihat arti <Icon name="arrow" size={12} />
+      </a>
+    </aside>
   </section>
 
   <SearchIsland client:load compact />
+
+  <aside
+    class="home-word-of-day home-word-of-day--mobile"
+    aria-labelledby="word-of-day-title-mobile"
+  >
+    <p class="eyebrow">
+      <span></span>Kata hari ini · <time datetime={wordOfDayDate}>{wordOfDayDateLabel}</time>
+    </p>
+    <h2 id="word-of-day-title-mobile">{wordOfDay.word}</h2>
+    <p>{wordOfDaySummary}</p>
+    <a href={sitePath(`/kata/${wordOfDay.slug}/`)}>
+      Lihat arti <Icon name="arrow" size={12} />
+    </a>
+  </aside>
 
   <section class="stats" aria-label="Statistik dataset">
     {
