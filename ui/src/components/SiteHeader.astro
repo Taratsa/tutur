@@ -1,6 +1,6 @@
 ---
 import Icon from "../lib/Icon.svelte";
-import { repositoryUrl, sitePath } from "../lib/site.js";
+import { sitePath } from "../lib/site.js";
 
 const { currentPath = "/" } = Astro.props;
 const isActive = (path: string) =>
@@ -34,11 +34,4 @@ const isActive = (path: string) =>
       href={sitePath("/tebak-kata/")}><Icon name="comment" size={13} />Tebak kata</a
     >
   </nav>
-  <a
-    class="github-button"
-    href={repositoryUrl}
-    target="_blank"
-    rel="noreferrer"
-    aria-label="Buka repositori GitHub"><Icon name="github" /></a
-  >
 </header>
