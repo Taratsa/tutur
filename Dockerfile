@@ -162,6 +162,9 @@ EOF
 FROM base
 WORKDIR /app
 
+# sharp/librsvg needs an installed font to render SVG text in generated OG images.
+RUN apk add --no-cache fontconfig ttf-dejavu
+
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=4321 \

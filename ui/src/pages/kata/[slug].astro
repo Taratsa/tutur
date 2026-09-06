@@ -204,7 +204,7 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
   description={description}
   robots={entry ? "index, follow" : "noindex, follow"}
   canonicalPath={entry ? `/kata/${entry.slug}/` : "/404/"}
-  image={entry ? `/og/kata/${entry.slug}.png` : undefined}
+  image={entry ? `/og/kata/${entry.slug}.png?v=2` : undefined}
   imageAlt={entry ? `Arti kata ${entry.word}` : undefined}
   jsonLd={jsonLd}
 >

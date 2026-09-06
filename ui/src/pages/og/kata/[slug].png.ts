@@ -5,6 +5,7 @@ import { getWordCard } from "../../../lib/server-data.js";
 import { SITE_URL, sitePath } from "../../../lib/site.js";
 
 export const prerender = false;
+const OG_IMAGE_REVISION = "2";
 
 const escapeXml = (value: string) =>
   value
@@ -70,12 +71,12 @@ export const GET: APIRoute = async ({ params }) => {
     <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
       <rect width="1200" height="630" fill="#fff"/>
       <rect x="0" y="0" width="24" height="630" fill="#000"/>
-      <text x="80" y="94" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="4">TUTUR · KAMUS BAHASA INDONESIA</text>
+      <text x="80" y="94" font-family="DejaVu Sans, sans-serif" font-size="26" font-weight="700" letter-spacing="4">TUTUR · KAMUS BAHASA INDONESIA</text>
       <line x1="80" y1="132" x2="1120" y2="132" stroke="#000" stroke-width="2"/>
-      <text x="80" y="${wordY}" font-family="Inter, Arial, sans-serif" font-size="${wordSize}" font-weight="650" letter-spacing="-3">${word}</text>
-      ${readings ? `<text x="80" y="${readingY}" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="500">${escapeXml(readings)}</text>` : ""}
-      <text x="80" y="${hasReadings ? 415 : 400}" font-family="Inter, Arial, sans-serif" font-size="${hasReadings ? 27 : 30}" font-weight="400" fill="#333">${summary}</text>
-      <text x="80" y="570" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="600">${escapeXml(displayUrl)}</text>
+      <text x="80" y="${wordY}" font-family="DejaVu Sans, sans-serif" font-size="${wordSize}" font-weight="650" letter-spacing="-3">${word}</text>
+      ${readings ? `<text x="80" y="${readingY}" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="500">${escapeXml(readings)}</text>` : ""}
+      <text x="80" y="${hasReadings ? 415 : 400}" font-family="DejaVu Sans, sans-serif" font-size="${hasReadings ? 27 : 30}" font-weight="400" fill="#333">${summary}</text>
+      <text x="80" y="570" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="600">${escapeXml(displayUrl)}</text>
       <image x="1044" y="510" width="76" height="76" href="${taratsaIcon}"/>
     </svg>`;
 
@@ -84,7 +85,7 @@ export const GET: APIRoute = async ({ params }) => {
     headers: {
       "Content-Type": "image/png",
       "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
-      ETag: `"tutur-og-${entry.id}"`,
+      ETag: `"tutur-og-v${OG_IMAGE_REVISION}-${entry.id}"`,
     },
   });
 };
