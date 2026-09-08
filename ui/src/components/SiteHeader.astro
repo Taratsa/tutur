@@ -33,5 +33,10 @@ const isActive = (path: string) =>
       aria-current={isActive("/tebak-kata/") ? "page" : undefined}
       href={sitePath("/tebak-kata/")}><Icon name="comment" size={13} />Tebak kata</a
     >
+    <a
+      class={isActive("/teka-silang/") ? "active" : undefined}
+      aria-current={isActive("/teka-silang/") ? "page" : undefined}
+      href={sitePath("/teka-silang/")}><Icon name="table" size={13} />Teka silang</a
+    >
   </nav>
 </header>

@@ -2,7 +2,15 @@ import { renderUrlset } from "../lib/sitemap.js";
 
 export function GET() {
   return new Response(
-    renderUrlset(["/", "/populer/", "/about/", "/sumber/", "/kuis/", "/tebak-kata/"]),
+    renderUrlset([
+      "/",
+      "/populer/",
+      "/about/",
+      "/sumber/",
+      "/kuis/",
+      "/tebak-kata/",
+      "/teka-silang/",
+    ]),
     {
       headers: {
         "Content-Type": "application/xml; charset=utf-8",

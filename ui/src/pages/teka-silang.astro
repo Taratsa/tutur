@@ -1,0 +1,382 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { loadSiteData } from "../lib/build-data.js";
+import { buildCrosswordGrid, cellKey, slotCells } from "../lib/crossword-game.js";
+import type { PreparedData } from "@tutur/shared/types";
+
+export const prerender = true;
+
+const data = (await loadSiteData()) as PreparedData;
+const entriesByWord = new Map(data.entries.map((entry) => [entry.normalizedWord, entry]));
+const layout = [
+  { answer: "salah", row: 0, col: 3, direction: "down" },
+  { answer: "nama", row: 1, col: 2, direction: "across" },
+  { answer: "bahasa", row: 4, col: 1, direction: "across" },
+  { answer: "bola", row: 4, col: 1, direction: "down" },
+  { answer: "sisi", row: 4, col: 5, direction: "down" },
+  { answer: "alih", row: 6, col: 0, direction: "across" },
+  { answer: "timur", row: 7, col: 4, direction: "across" },
+];
+const rows = 8;
+const columns = 9;
+
+function clueFor(word: string) {
+  const text = entriesByWord.get(word)?.definitions[0]?.text;
+  if (!text) throw new Error(`Crossword word is missing a definition: ${word}`);
+  return text
+    .replace(/\s+/gu, " ")
+    .trim()
+    .replace(/^(?:\d+)?[\p{L}·./-]+\s+(?:n|v|a|adv|pron|num|p|prep|konj)\s+/iu, "")
+    .replace(/^\d+\s+/u, "")
+    .slice(0, 180)
+    .replace(/[;:]\s*$/u, "");
+}
+
+const rawSlots = layout.map((slot, index) => ({
+  ...slot,
+  id: index + 1,
+  clue: clueFor(slot.answer),
+}));
+const grid = buildCrosswordGrid(rows, columns, rawSlots);
+const numberByCell = new Map<string, number>();
+let nextNumber = 1;
+for (let row = 0; row < rows; row += 1) {
+  for (let column = 0; column < columns; column += 1) {
+    const startsSlot = rawSlots.some((slot) => slot.row === row && slot.col === column);
+    if (startsSlot) numberByCell.set(cellKey(row, column), nextNumber++);
+  }
+}
+const slots = rawSlots.map((slot) => ({
+  ...slot,
+  number: numberByCell.get(cellKey(slot.row, slot.col)),
+}));
+const cellSlots = new Map<string, number[]>();
+for (const slot of slots) {
+  for (const key of slotCells(slot)) {
+    const entries = cellSlots.get(key) ?? [];
+    entries.push(slot.id);
+    cellSlots.set(key, entries);
+  }
+}
+const openCellCount = grid.flat().filter(Boolean).length;
+const firstOpenCell = grid
+  .flatMap((row, rowIndex) =>
+    row.map((letter, columnIndex) => (letter ? cellKey(rowIndex, columnIndex) : null)),
+  )
+  .find(Boolean);
+---
+
+<BaseLayout
+  title="Teka Silang Bahasa Indonesia | Tutur"
+  description="Permainan teka silang mini dengan petunjuk dari definisi kamus Bahasa Indonesia."
+  canonicalPath="/teka-silang/"
+  currentPath="/teka-silang/"
+>
+  <section
+    class="section-wrap crossword-page"
+    data-crossword
+    data-puzzle={JSON.stringify({ rows, columns, slots })}
+    aria-labelledby="crossword-title"
+  >
+    <header class="crossword-heading">
+      <div>
+        <p class="eyebrow"><span></span>Permainan kata</p>
+        <h1 id="crossword-title">Teka silang.</h1>
+        <p>Isi semua kotak berdasarkan petunjuk dari kamus Bahasa Indonesia.</p>
+      </div>
+      <p class="crossword-progress">
+        <strong id="crossword-filled">0</strong> / {openCellCount} terisi
+      </p>
+    </header>
+
+    <div class="crossword-layout">
+      <div class="crossword-board-panel">
+        <div
+          class="crossword-grid"
+          role="grid"
+          aria-label="Papan teka silang kata"
+          aria-rowcount={rows}
+          aria-colcount={columns}
+          style={`--crossword-columns: ${columns};`}
+        >
+          {
+            grid.flatMap((row, rowIndex) =>
+              row.map((letter, columnIndex) => {
+                const key = cellKey(rowIndex, columnIndex);
+                if (!letter) return <span class="crossword-block" aria-hidden="true" />;
+                const number = numberByCell.get(key);
+                return (
+                  <button
+                    type="button"
+                    class="crossword-cell"
+                    data-cell={key}
+                    data-slots={cellSlots.get(key)?.join(",")}
+                    aria-label={`Kotak ${number ? `nomor ${number}, ` : ""}baris ${rowIndex + 1}, kolom ${columnIndex + 1}`}
+                    tabindex={key === firstOpenCell ? 0 : -1}
+                  >
+                    {number && <span class="crossword-number">{number}</span>}
+                    <span class="crossword-letter" />
+                  </button>
+                );
+              }),
+            )
+          }
+        </div>
+
+        <p id="crossword-status" class="crossword-status" aria-live="polite">
+          Pilih kotak lalu ketik huruf. Enter berpindah antara mendatar dan menurun.
+        </p>
+        <div class="crossword-actions">
+          <button id="crossword-check" type="button" class="primary-button">Periksa jawaban</button>
+          <button id="crossword-reset" type="button" class="crossword-secondary">Mulai ulang</button
+          >
+        </div>
+        <p class="crossword-help">
+          Gunakan tombol panah untuk berpindah. Klik nomor petunjuk untuk memilih kata.
+        </p>
+      </div>
+
+      <aside class="crossword-clues" aria-label="Petunjuk teka silang">
+        {
+          (["across", "down"] as const).map((direction) => (
+            <section>
+              <h2>{direction === "across" ? "Mendatar" : "Menurun"}</h2>
+              <ol>
+                {slots
+                  .filter((slot) => slot.direction === direction)
+                  .sort((left, right) => (left.number ?? 0) - (right.number ?? 0))
+                  .map((slot) => (
+                    <li>
+                      <button type="button" data-clue={slot.id}>
+                        <strong>{slot.number}</strong>
+                        <span>{slot.clue}</span>
+                      </button>
+                    </li>
+                  ))}
+              </ol>
+            </section>
+          ))
+        }
+      </aside>
+    </div>
+
+    <noscript
+      ><p class="crossword-noscript">Aktifkan JavaScript untuk memainkan teka silang.</p></noscript
+    >
+  </section>
+
+  <script>
+    import { cellKey, isCrosswordComplete, slotCells } from "../lib/crossword-game.js";
+
+    const game = document.querySelector<HTMLElement>("[data-crossword]");
+    if (game) {
+      const root = game;
+      type Slot = {
+        id: number;
+        answer: string;
+        clue: string;
+        row: number;
+        col: number;
+        direction: "across" | "down";
+        number: number;
+      };
+      type Puzzle = { rows: number; columns: number; slots: Slot[] };
+      const puzzle = JSON.parse(game.dataset.puzzle || "{}") as Puzzle;
+      const slots = puzzle.slots;
+      const letters = new Map<string, string>();
+      const solution = new Map<string, string>();
+      const cells = new Map(
+        [...game.querySelectorAll<HTMLButtonElement>("[data-cell]")].map((cell) => [
+          cell.dataset.cell || "",
+          cell,
+        ]),
+      );
+      const slotById = new Map(slots.map((slot) => [slot.id, slot]));
+      const status = game.querySelector<HTMLElement>("#crossword-status");
+      const filled = game.querySelector<HTMLElement>("#crossword-filled");
+      const check = game.querySelector<HTMLButtonElement>("#crossword-check");
+      const reset = game.querySelector<HTMLButtonElement>("#crossword-reset");
+      let selectedKey = cells.keys().next().value as string;
+      let direction: Slot["direction"] = "across";
+      let checked = false;
+
+      for (const slot of slots) {
+        for (const [index, key] of slotCells(slot).entries()) solution.set(key, slot.answer[index]);
+      }
+
+      const slotsAt = (key: string) =>
+        (cells.get(key)?.dataset.slots || "")
+          .split(",")
+          .filter(Boolean)
+          .map((id) => slotById.get(Number(id)))
+          .filter((slot): slot is Slot => Boolean(slot));
+      const activeSlot = () =>
+        slotsAt(selectedKey).find((slot) => slot.direction === direction) ||
+        slotsAt(selectedKey)[0];
+
+      function setStatus(message: string, state = "") {
+        if (!status) return;
+        status.textContent = message;
+        status.className = `crossword-status${state ? ` is-${state}` : ""}`;
+      }
+
+      function render() {
+        const slot = activeSlot();
+        const activeKeys = new Set(slot ? slotCells(slot) : []);
+        for (const [key, cell] of cells) {
+          const letter = letters.get(key);
+          const letterElement = cell.querySelector<HTMLElement>(".crossword-letter");
+          if (letterElement) letterElement.textContent = letter?.toUpperCase() || "";
+          cell.dataset.active = activeKeys.has(key) ? "true" : "false";
+          cell.dataset.selected = key === selectedKey ? "true" : "false";
+          cell.dataset.incorrect =
+            checked && letter && letter !== solution.get(key) ? "true" : "false";
+          cell.tabIndex = key === selectedKey ? 0 : -1;
+        }
+        root.querySelectorAll<HTMLButtonElement>("[data-clue]").forEach((clue) => {
+          clue.dataset.active = slot && Number(clue.dataset.clue) === slot.id ? "true" : "false";
+        });
+        if (filled) filled.textContent = String(letters.size);
+      }
+
+      function selectCell(key: string, preferredDirection = direction, focus = false) {
+        if (!cells.has(key)) return;
+        const available = slotsAt(key);
+        selectedKey = key;
+        direction = available.some((slot) => slot.direction === preferredDirection)
+          ? preferredDirection
+          : available[0]?.direction || preferredDirection;
+        render();
+        if (focus) cells.get(key)?.focus();
+      }
+
+      function selectSlot(slot: Slot, focus = true) {
+        direction = slot.direction;
+        const key = slotCells(slot).find((cell) => !letters.has(cell)) || slotCells(slot)[0];
+        selectCell(key, direction, focus);
+      }
+
+      function moveInSlot(step: number) {
+        const slot = activeSlot();
+        if (!slot) return;
+        const keys = slotCells(slot);
+        const index = keys.indexOf(selectedKey);
+        const next = keys[index + step];
+        if (next) selectCell(next, direction, true);
+      }
+
+      function moveByArrow(rowStep: number, columnStep: number, nextDirection: Slot["direction"]) {
+        let row = Number(selectedKey.split(":")[0]) + rowStep;
+        let column = Number(selectedKey.split(":")[1]) + columnStep;
+        while (row >= 0 && row < puzzle.rows && column >= 0 && column < puzzle.columns) {
+          const key = cellKey(row, column);
+          if (cells.has(key)) {
+            selectCell(key, nextDirection, true);
+            return;
+          }
+          row += rowStep;
+          column += columnStep;
+        }
+      }
+
+      function typeLetter(letter: string) {
+        letters.set(selectedKey, letter);
+        checked = false;
+        render();
+        moveInSlot(1);
+      }
+
+      function eraseLetter() {
+        if (letters.has(selectedKey)) letters.delete(selectedKey);
+        else {
+          const slot = activeSlot();
+          const keys = slot ? slotCells(slot) : [];
+          const previous = keys[keys.indexOf(selectedKey) - 1];
+          if (previous) {
+            selectedKey = previous;
+            letters.delete(previous);
+          }
+        }
+        checked = false;
+        render();
+      }
+
+      function checkAnswer() {
+        checked = true;
+        if (letters.size < cells.size) {
+          setStatus("Masih ada kotak yang belum terisi.", "wrong");
+        } else if (!isCrosswordComplete(slots, letters)) {
+          setStatus("Belum tepat. Kotak yang salah ditandai merah.", "wrong");
+        } else {
+          setStatus("Benar! Kamu menyelesaikan teka silang ini.", "correct");
+          if (check) check.disabled = true;
+        }
+        render();
+      }
+
+      game.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        const cell = target.closest<HTMLButtonElement>("[data-cell]");
+        if (cell?.dataset.cell) {
+          const key = cell.dataset.cell;
+          const available = slotsAt(key);
+          const nextDirection =
+            key === selectedKey && available.length > 1
+              ? available.find((slot) => slot.direction !== direction)?.direction || direction
+              : direction;
+          selectCell(key, nextDirection);
+          cell.focus();
+          return;
+        }
+        const clue = target.closest<HTMLButtonElement>("[data-clue]");
+        if (clue?.dataset.clue) {
+          const slot = slotById.get(Number(clue.dataset.clue));
+          if (slot) selectSlot(slot);
+        }
+      });
+
+      game.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          moveByArrow(0, -1, "across");
+        } else if (event.key === "ArrowRight") {
+          event.preventDefault();
+          moveByArrow(0, 1, "across");
+        } else if (event.key === "ArrowUp") {
+          event.preventDefault();
+          moveByArrow(-1, 0, "down");
+        } else if (event.key === "ArrowDown") {
+          event.preventDefault();
+          moveByArrow(1, 0, "down");
+        } else if (event.key === "Enter") {
+          const available = slotsAt(selectedKey);
+          if (available.length > 1) {
+            event.preventDefault();
+            selectCell(
+              selectedKey,
+              available.find((slot) => slot.direction !== direction)?.direction || direction,
+              true,
+            );
+          }
+        } else if (/^[a-z]$/iu.test(event.key)) {
+          event.preventDefault();
+          typeLetter(event.key.toLocaleLowerCase("id-ID"));
+        } else if (event.key === "Backspace" || event.key === "Delete") {
+          event.preventDefault();
+          eraseLetter();
+        }
+      });
+
+      check?.addEventListener("click", checkAnswer);
+      reset?.addEventListener("click", () => {
+        letters.clear();
+        checked = false;
+        if (check) check.disabled = false;
+        setStatus("Pilih kotak lalu ketik huruf. Enter berpindah antara mendatar dan menurun.");
+        selectCell(cells.keys().next().value as string, "down", true);
+      });
+      render();
+    }
+  </script>
+</BaseLayout>
