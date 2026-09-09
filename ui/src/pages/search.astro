@@ -5,7 +5,16 @@ import SearchIsland from "../components/SearchIsland.svelte";
 export const prerender = true;
 
 const type = Astro.url.searchParams.get("type") || "all";
-const validType = ["all", "dictionary", "baku", "sinonim", "antonim", "slang"].includes(type)
+const validType = [
+  "all",
+  "dictionary",
+  "baku",
+  "sinonim",
+  "antonim",
+  "slang",
+  "rima",
+  "rima-awal",
+].includes(type)
   ? type
   : "all";
 ---

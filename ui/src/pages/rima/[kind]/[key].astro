@@ -1,0 +1,52 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import RhymePage from "../../../components/RhymePage.astro";
+import { getRhymeGroup } from "../../../lib/server-data.js";
+import { rhymeDisplay, rhymeKindLabel, rhymePath } from "../../../lib/rhyme.js";
+import { sitePath } from "../../../lib/site.js";
+
+export const prerender = false;
+
+const requestedKind = Astro.params.kind ?? "";
+const requestedKey = Astro.params.key ?? "";
+const key = requestedKey.toLocaleLowerCase("id-ID");
+if (requestedKey !== key) return Astro.redirect(sitePath(rhymePath(requestedKind, key)), 308);
+const pageData = getRhymeGroup(requestedKind, key, 1);
+if (!pageData) Astro.response.status = 404;
+const display = pageData ? rhymeDisplay(pageData.key, pageData.kind) : "";
+const kindLabel = rhymeKindLabel(requestedKind);
+Astro.response.headers.set(
+  "Cache-Control",
+  "public, max-age=300, s-maxage=86400, stale-while-revalidate=86400",
+);
+---
+
+<BaseLayout
+  title={pageData ? `Kata berima ${display} | Tutur` : "Grup rima tidak ditemukan | Tutur"}
+  description={pageData
+    ? `Daftar kata ${kindLabel} ${display} dalam KBBI, diurutkan dari yang paling sering dipakai.`
+    : "Grup rima yang diminta tidak ditemukan."}
+  robots={pageData ? "index, follow" : "noindex, follow"}
+  canonicalPath={pageData ? rhymePath(pageData.kind, pageData.key) : "/404/"}
+  currentPath={pageData ? rhymePath(pageData.kind, pageData.key) : "/"}
+>
+  {
+    pageData ? (
+      <RhymePage pageData={pageData} />
+    ) : (
+      <section class="not-found section-wrap">
+        <>
+          <p class="eyebrow">
+            <span />
+            404
+          </p>
+          <h1>Grup rima tidak ditemukan.</h1>
+          <p>Belum ada kata KBBI dengan bunyi rima tersebut.</p>
+          <a class="primary-button" href={sitePath("/rima/")}>
+            Lihat grup rima lain
+          </a>
+        </>
+      </section>
+    )
+  }
+</BaseLayout>

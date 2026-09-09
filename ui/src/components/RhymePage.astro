@@ -1,0 +1,66 @@
+---
+import { rhymeDisplay, rhymePath, rhymeKindLabel } from "../lib/rhyme.js";
+import { sitePath } from "../lib/site.js";
+
+type RhymeEntry = { word: string; slug: string; summary: string };
+type PageData = {
+  kind: "akhir" | "awal";
+  key: string;
+  page: number;
+  total: number;
+  totalPages: number;
+  entries: RhymeEntry[];
+};
+type Props = { pageData: PageData };
+const { pageData } = Astro.props as Props;
+const { kind, key, page, total, totalPages, entries } = pageData;
+const display = rhymeDisplay(key, kind);
+const previousPath = page > 1 ? rhymePath(kind, key, page - 1) : null;
+const nextPath = page < totalPages ? rhymePath(kind, key, page + 1) : null;
+---
+
+<section class="page-hero alphabet-hero">
+  <div class="page-hero-inner">
+    <p class="eyebrow">
+      <span></span>{rhymeKindLabel(kind)} · {total.toLocaleString("id-ID")} kata
+    </p><h1>Kata berima {display}</h1><p>
+      Halaman {page} dari {totalPages}. <a href={sitePath("/rima/")}>Cari rima lain</a>.
+    </p>
+  </div>
+</section>
+<section class="section-wrap alphabet-browser">
+  <div class="alphabet-heading">
+    <div>
+      <p class="eyebrow"><span></span>250 kata per halaman</p>
+      <h2>Berbunyi {display}</h2>
+    </div>
+    <strong>{entries.length} dari {total.toLocaleString("id-ID")}</strong>
+  </div>
+  <ol class="alphabet-word-list">
+    {
+      entries.map((entry: RhymeEntry) => (
+        <li>
+          <a href={sitePath(`/kata/${entry.slug}/`)}>
+            <>
+              <span>
+                <>
+                  <strong>{entry.word}</strong>
+                  <small>
+                    {entry.summary.slice(0, 180)}
+                    {entry.summary.length > 180 ? "…" : ""}
+                  </small>
+                </>
+              </span>
+              <span aria-hidden="true">→</span>
+            </>
+          </a>
+        </li>
+      ))
+    }
+  </ol>
+  <nav class="pagination" aria-label="Paginasi daftar kata berima">
+    {previousPath ? <a href={sitePath(previousPath)}>← Halaman sebelumnya</a> : <span />}<span
+      >Halaman {page} / {totalPages}</span
+    >{nextPath ? <a href={sitePath(nextPath)}>Halaman berikutnya →</a> : <span />}
+  </nav>
+</section>

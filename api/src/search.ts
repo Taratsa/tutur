@@ -1,7 +1,17 @@
 import { characterCount, normalizeWord, tokenText } from "@tutur/shared/normalization";
+import { alliterationKey, rhymeKey } from "@tutur/shared/rhyme";
 import type { Database, SQLQueryBindings } from "bun:sqlite";
 
-export const SEARCH_TYPES = ["all", "dictionary", "baku", "sinonim", "antonim", "slang"] as const;
+export const SEARCH_TYPES = [
+  "all",
+  "dictionary",
+  "baku",
+  "sinonim",
+  "antonim",
+  "slang",
+  "rima",
+  "rima-awal",
+] as const;
 export type SearchType = (typeof SEARCH_TYPES)[number];
 export type SearchCollection = Exclude<SearchType, "all">;
 export const MAX_LIMIT = 50;
@@ -11,6 +21,8 @@ const COLLECTION_ORDER: Record<SearchCollection, number> = {
   sinonim: 2,
   antonim: 3,
   slang: 4,
+  rima: 5,
+  "rima-awal": 6,
 };
 // Trigram MATCH pada query pendek memindai kumpulan match yang sangat besar
 // (uji beban: 8 RPS dengan p99 20 detik pada query 3 karakter) sehingga query
@@ -137,10 +149,33 @@ export function createSearcher(db: Database): {
       .map(compactResult);
   }
 
+  // Pencarian rima tidak memakai pipeline FTS: cukup satu lookup indeks
+  // rhyme_keys(kind, key) lalu urutkan anggota grup berdasar frekuensi korpus.
+  function rhymeResults(kind: "akhir" | "awal", query: string, limit: number): SearchResult[] {
+    const key = kind === "akhir" ? rhymeKey(query) : alliterationKey(query);
+    const rows = db
+      .query<
+        { word: string; slug: string; summary: string; frequency: number | null },
+        SQLQueryBindings[]
+      >(
+        "SELECT e.word, e.slug, e.summary, e.frequency FROM (SELECT entry_id FROM rhyme_keys WHERE kind = ? AND key = ? ORDER BY frequency DESC, entry_id LIMIT ?) AS k JOIN entries AS e ON e.id = k.entry_id WHERE e.normalized_word != ? LIMIT ?",
+      )
+      .all(kind, key, limit + 2, query, limit);
+    return rows.map((row) => ({
+      type: kind === "akhir" ? ("rima" as const) : ("rima-awal" as const),
+      word: row.word,
+      slug: row.slug,
+      url: `/kata/${row.slug}/`,
+      summary: row.summary,
+    }));
+  }
+
   // Fase dijalankan berurutan sesuai rank (exact=0 … fts/like=3). Urutan akhir
   // memprioritaskan rank, jadi begitu jumlah hasil mencapai limit, fase
   // berikutnya tidak mungkin masuk hasil akhir dan bisa langsung dilewati.
   function searchPrepared({ query, type, limit }: SearchParams): SearchResult[] {
+    if (type === "rima") return rhymeResults("akhir", query, limit);
+    if (type === "rima-awal") return rhymeResults("awal", query, limit);
     const scope = scopeFor(type);
     const scopeArgs = scopeParams(type);
     const results = new Map<number, RankedRow>();

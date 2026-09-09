@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import Icon from "../lib/Icon.svelte";
   import { normalizeWord, characterCount } from "@tutur/shared/normalization";
+  import { alliterationKey, rhymeKey } from "@tutur/shared/rhyme";
   import { sitePath } from "../lib/site.js";
   import { createSearchClient } from "../lib/search-client.js";
 
@@ -13,6 +14,8 @@
     { id: "sinonim", label: "Sinonim", icon: "link" },
     { id: "antonim", label: "Antonim", icon: "swap" },
     { id: "slang", label: "Slang", icon: "comment" },
+    { id: "rima", label: "Rima akhir", icon: "music" },
+    { id: "rima-awal", label: "Rima awal", icon: "feather" },
   ];
   const endpoint = import.meta.env.PUBLIC_SEARCH_API_URL || "http://localhost:3001/api/search";
   const client = createSearchClient({ endpoint });
@@ -91,6 +94,16 @@
   });
 
   const typeLabel = (type) => types.find((item) => item.id === type)?.label ?? type;
+  const rhymeKeyLabel = (type, word) =>
+    type === "rima"
+      ? `-${rhymeKey(word)}`
+      : type === "rima-awal"
+        ? `${alliterationKey(word)}-`
+        : null;
+  const rhymeKeySuffix = (type, word) => {
+    const label = rhymeKeyLabel(type, word);
+    return label ? ` · ${label}` : "";
+  };
 </script>
 
 <section
@@ -101,7 +114,7 @@
 >
   {#if !compact}
     <div class="search-engine-copy">
-      <p class="eyebrow"><span></span>Dataset terbuka · Bukan layanan resmi</p>
+      <p class="eyebrow"><span></span>Kamus Besar Bahasa Indonesia (KBBI)</p>
       <h1 id="search-title">Cari kata.<br /><em>Lihat artinya.</em></h1>
       <p>Cari arti, kata baku, sinonim, atau antonim.</p>
     </div>
@@ -162,7 +175,9 @@
   {:else}
     <header class="results-heading">
       <div>
-        <p class="eyebrow"><span></span>Hasil pencarian · {typeLabel(activeType)}</p>
+        <p class="eyebrow">
+          <span></span>Hasil pencarian · {typeLabel(activeType)}{rhymeKeySuffix(activeType, query)}
+        </p>
         <h2 id="results-title">“{query}”</h2>
       </div>
       <strong>{results.length} hasil</strong>

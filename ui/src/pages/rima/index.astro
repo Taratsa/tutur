@@ -1,0 +1,105 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PageHero from "../../components/PageHero.astro";
+import { getPopularRhymeGroups } from "../../lib/server-data.js";
+import { alliterationKey, rhymeKey } from "@tutur/shared/rhyme";
+import { rhymeDisplay, rhymePath } from "../../lib/rhyme.js";
+import { sitePath } from "../../lib/site.js";
+
+export const prerender = false;
+
+type RhymeGroupSummary = { key: string; total: number };
+
+const query = Astro.url.searchParams.get("q") ?? "";
+const requestedKind = Astro.url.searchParams.get("kind") === "awal" ? "awal" : "akhir";
+if (query.trim()) {
+  const key = requestedKind === "awal" ? alliterationKey(query) : rhymeKey(query);
+  if (key) return Astro.redirect(sitePath(rhymePath(requestedKind, key)), 308);
+}
+const akhirGroups = getPopularRhymeGroups("akhir", 24) as RhymeGroupSummary[];
+const awalGroups = getPopularRhymeGroups("awal", 24) as RhymeGroupSummary[];
+Astro.response.headers.set(
+  "Cache-Control",
+  "public, max-age=300, s-maxage=86400, stale-while-revalidate=86400",
+);
+---
+
+<BaseLayout
+  title="Pencarian Rima: Kata Berima Akhir & Awal | Tutur"
+  description="Cari kata berima akhir dan rima awal (aliterasi) dalam KBBI. Masukkan sebuah kata, temukan kata-kata yang berima dengannya."
+  canonicalPath="/rima/"
+  currentPath="/rima/"
+>
+  <PageHero
+    eyebrow="Puisi · Pantun · Sandiasma"
+    title="Cari kata berima."
+    description="Rima akhir menyatukan kata berdasarkan bunyi penutup, rima awal berdasarkan bunyi pembuka."
+  />
+  <section class="section-wrap">
+    <form class="rhyme-form" method="get" action={sitePath("/rima/")}>
+      <div class="engine-search">
+        <input
+          type="text"
+          name="q"
+          value={query}
+          placeholder="Ketik sebuah kata, misalnya bahasa…"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Kata untuk dicari rimanya"
+        />
+      </div>
+      <fieldset class="rhyme-kind-picker">
+        <legend class="sr-only">Jenis rima</legend>
+        <label
+          ><input type="radio" name="kind" value="akhir" checked={requestedKind === "akhir"} />Rima
+          akhir</label
+        >
+        <label
+          ><input type="radio" name="kind" value="awal" checked={requestedKind === "awal"} />Rima
+          awal</label
+        >
+      </fieldset>
+      <button class="primary-button" type="submit">Cari rima</button>
+    </form>
+    <p class="search-help">
+      “bahasa” → rima akhir <strong>-asa</strong> (rasa, puasa) · “bahasa” → rima awal
+      <strong>ba-</strong> (baku, bahan).
+    </p>
+  </section>
+  <section class="section-wrap" aria-labelledby="rhyme-akhir-title">
+    <div class="word-section-heading">
+      <p class="eyebrow"><span></span>Paling banyak anggota</p>
+      <h2 id="rhyme-akhir-title">Rima akhir</h2>
+    </div>
+    <ul class="chip-list">
+      {
+        akhirGroups.map((group) => (
+          <li>
+            <a href={sitePath(rhymePath("akhir", group.key))}>
+              <strong>{rhymeDisplay(group.key, "akhir")}</strong>
+              <small>{group.total.toLocaleString("id-ID")} kata</small>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+  <section class="section-wrap" aria-labelledby="rhyme-awal-title">
+    <div class="word-section-heading">
+      <p class="eyebrow"><span></span>Paling banyak anggota</p>
+      <h2 id="rhyme-awal-title">Rima awal</h2>
+    </div>
+    <ul class="chip-list">
+      {
+        awalGroups.map((group) => (
+          <li>
+            <a href={sitePath(rhymePath("awal", group.key))}>
+              <strong>{rhymeDisplay(group.key, "awal")}</strong>
+              <small>{group.total.toLocaleString("id-ID")} kata</small>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</BaseLayout>
