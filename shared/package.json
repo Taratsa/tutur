@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./normalization": "./src/normalization.ts",
+    "./rhyme": "./src/rhyme.ts",
     "./slug": "./src/slug.ts",
     "./sanitize": "./src/sanitize.ts",
     "./grouping": "./src/grouping.ts",

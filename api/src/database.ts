@@ -1,5 +1,6 @@
 import { Database, type Statement } from "bun:sqlite";
 import { tokenText, normalizeWord } from "@tutur/shared/normalization";
+import { alliterationKey, rhymeKey } from "@tutur/shared/rhyme";
 import { truncateText } from "@tutur/shared/sanitize";
 import type { PreparedData, PreparedEntry } from "@tutur/shared/types";
 
@@ -31,7 +32,8 @@ function createSchema(db: Database): string {
       ordinal INTEGER NOT NULL,
       definition_html TEXT NOT NULL,
       definition_text TEXT NOT NULL,
-      entry_type INTEGER
+      entry_type INTEGER,
+      edition TEXT NOT NULL DEFAULT 'IV'
     );
     CREATE TABLE baku_relations (
       id INTEGER PRIMARY KEY,
@@ -101,7 +103,8 @@ function createSchema(db: Database): string {
       derivations TEXT NOT NULL,
       compounds TEXT NOT NULL,
       proverbs TEXT NOT NULL,
-      idioms TEXT NOT NULL
+      idioms TEXT NOT NULL,
+      variants TEXT NOT NULL DEFAULT '[]'
     );
     CREATE TABLE etymology_relations (
       id INTEGER PRIMARY KEY,
@@ -147,6 +150,13 @@ function createSchema(db: Database): string {
     );
     CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
     CREATE TABLE word_graphs (slug TEXT PRIMARY KEY, data TEXT NOT NULL);
+    CREATE TABLE rhyme_keys (
+      id INTEGER PRIMARY KEY,
+      kind TEXT NOT NULL CHECK (kind IN ('akhir', 'awal')),
+      entry_id INTEGER NOT NULL REFERENCES entries(id),
+      frequency INTEGER,
+      key TEXT NOT NULL
+    );
   `);
 
   let tokenizer = "trigram";
@@ -209,7 +219,7 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
   const slugFor = (normalized: string): string | null => entryByWord.get(normalized)?.slug ?? null;
 
   const insertEntry = db.prepare("INSERT INTO entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-  const insertDefinition = db.prepare("INSERT INTO definitions VALUES (?, ?, ?, ?, ?, ?)");
+  const insertDefinition = db.prepare("INSERT INTO definitions VALUES (?, ?, ?, ?, ?, ?, ?)");
   const insertBaku = db.prepare("INSERT INTO baku_relations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
   const insertSinonim = db.prepare(
     "INSERT INTO synonym_relations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -219,7 +229,7 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
   );
   const insertSlang = db.prepare("INSERT INTO slang_relations VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
   const insertFamily = db.prepare("INSERT INTO word_families VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-  const insertExtras = db.prepare("INSERT INTO entry_extras VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+  const insertExtras = db.prepare("INSERT INTO entry_extras VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
   const insertEtymology = db.prepare(
     "INSERT INTO etymology_relations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
@@ -241,6 +251,9 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
   let familyId = 1;
   const insertAll = db.transaction(() => {
     for (const entry of data.entries) {
+      // Entri KBBI VI murni menyimpan definisinya di definitions[] juga;
+      // barisnya harus tetap mendapat tanda edisi VI.
+      const definitionEdition = entry.editions?.[0] === "VI" ? "VI" : "IV";
       insertEntry.run(
         entry.id,
         entry.word,
@@ -262,6 +275,20 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
           definition.html,
           definition.text,
           definition.type,
+          definitionEdition,
+        );
+        definitionId += 1;
+      }
+      for (let index = 0; index < (entry.v6Definitions?.length ?? 0); index += 1) {
+        const definition = entry.v6Definitions[index]!;
+        insertDefinition.run(
+          definitionId,
+          entry.id,
+          entry.definitions.length + index + 1,
+          definition.html,
+          definition.text,
+          null,
+          "VI",
         );
         definitionId += 1;
       }
@@ -275,6 +302,7 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
           JSON.stringify(entry.extras.compounds ?? []),
           JSON.stringify(entry.extras.proverbs ?? []),
           JSON.stringify(entry.extras.idioms ?? []),
+          JSON.stringify(entry.extras.variants ?? []),
         );
       }
       searchId = addSearchEntry(
@@ -479,6 +507,24 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
   });
   insertAll();
 
+  const insertRhyme = db.prepare(
+    "INSERT INTO rhyme_keys (kind, entry_id, frequency, key) VALUES (?, ?, ?, ?)",
+  );
+  let rhymeKeyCount = 0;
+  const insertRhymes = db.transaction(() => {
+    for (const entry of data.entries) {
+      insertRhyme.run("akhir", entry.id, entry.frequency ?? null, rhymeKey(entry.normalizedWord));
+      insertRhyme.run(
+        "awal",
+        entry.id,
+        entry.frequency ?? null,
+        alliterationKey(entry.normalizedWord),
+      );
+      rhymeKeyCount += 2;
+    }
+  });
+  insertRhymes();
+
   db.exec(`
     CREATE INDEX idx_entries_letter_word ON entries(letter, normalized_word);
     CREATE INDEX idx_entries_normalized_word ON entries(normalized_word);
@@ -500,6 +546,7 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
     CREATE INDEX idx_sinonim_counterpart_slug ON synonym_relations(counterpart_slug);
     CREATE INDEX idx_antonym_word_slug ON antonym_relations(word_slug);
     CREATE INDEX idx_antonym_counterpart_slug ON antonym_relations(counterpart_slug);
+    CREATE INDEX idx_rhyme_keys_group ON rhyme_keys(kind, key, frequency DESC, entry_id);
   `);
   const metadata = db.prepare("INSERT INTO metadata VALUES (?, ?)");
   metadata.run("ftsTokenizer", tokenizer);
@@ -522,6 +569,10 @@ export function buildDatabase(data: PreparedData, outputPath: string): void {
   metadata.run("kaikkiEtymologyTerms", String(data.stats.kaikkiEtymologyTerms ?? 0));
   metadata.run("kaikkiHyphenationTerms", String(data.stats.kaikkiHyphenationTerms ?? 0));
   metadata.run("searchRecords", String(searchId - 1));
+  metadata.run("rhymeKeys", String(rhymeKeyCount));
+  metadata.run("v6Records", String(data.stats.v6Records ?? 0));
+  metadata.run("v6OnlyHeadwords", String(data.stats.v6OnlyHeadwords ?? 0));
+  metadata.run("v6Definitions", String(data.stats.v6Definitions ?? 0));
   db.exec("PRAGMA optimize;");
   db.close();
 }

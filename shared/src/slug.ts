@@ -6,7 +6,7 @@ export interface SlugMap {
   collisionCount: number;
 }
 
-function readableSlug(value: string): string {
+export function readableSlug(value: string): string {
   const slug = normalizeWord(value)
     .normalize("NFKD")
     .replace(/\p{Mark}/gu, "")
@@ -55,4 +55,43 @@ export function slugForWord(word: string, slugMap: Map<string, string>): string 
   const slug = slugMap.get(normalized);
   if (!slug) throw new Error(`No slug exists for normalized word: ${normalized}`);
   return slug;
+}
+
+// Menambahkan kata baru tanpa mengubah slug yang sudah ada: penting agar URL
+// lama tidak berubah saat corpus bertambah (mis. impor KBBI VI).
+export function extendSlugMap(existing: SlugMap, words: string[]): SlugMap & { skipped: string[] } {
+  const wordToSlug = new Map(existing.wordToSlug);
+  const slugToWord = new Map(existing.slugToWord);
+  const usedSlugs = new Set(existing.slugToWord.keys());
+  const skipped: string[] = [];
+  let collisionCount = existing.collisionCount;
+
+  const fresh = [...new Set(words.map(normalizeWord))].filter((word) => {
+    if (!word) return false;
+    if (wordToSlug.has(word)) return false;
+    return true;
+  });
+  fresh.sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
+
+  for (const word of fresh) {
+    let base: string;
+    try {
+      base = readableSlug(word);
+    } catch {
+      skipped.push(word);
+      continue;
+    }
+    let slug = base;
+    let suffix = 2;
+    while (usedSlugs.has(slug)) {
+      slug = `${base}-${suffix}`;
+      suffix += 1;
+    }
+    if (slug !== base) collisionCount += 1;
+    usedSlugs.add(slug);
+    wordToSlug.set(word, slug);
+    slugToWord.set(slug, word);
+  }
+
+  return { wordToSlug, slugToWord, collisionCount, skipped };
 }

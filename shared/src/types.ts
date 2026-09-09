@@ -21,6 +21,7 @@ export interface PreparedExtras {
   compounds: ExtraItem[];
   proverbs: ExtraItem[];
   idioms: ExtraItem[];
+  variants?: ExtraItem[];
 }
 
 export interface EtymologyRelation {
@@ -70,6 +71,15 @@ export interface PreparedEntry {
   rootRank: number | null;
   rootFrequency?: number;
   extras: PreparedExtras | null;
+  /** Definisi tambahan dari KBBI Edisi VI (Definisi/kbbi), tanpa id. */
+  v6Definitions?: PreparedDefinitionMeta[];
+  /** Edisi yang menjadi sumber entri ini, mis. ["IV", "VI"]. */
+  editions?: string[];
+}
+
+export interface PreparedDefinitionMeta {
+  html: string;
+  text: string;
 }
 
 export interface BakuRelation {
@@ -145,6 +155,9 @@ export interface PreparedStats {
   kaikkiTerms?: number;
   kaikkiEtymologyTerms?: number;
   kaikkiHyphenationTerms?: number;
+  v6Records?: number;
+  v6OnlyHeadwords?: number;
+  v6Definitions?: number;
 }
 
 export interface PreparedData {

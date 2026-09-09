@@ -1,8 +1,13 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { gunzipSync } from "node:zlib";
-import { createSlugMap } from "../shared/src/slug.ts";
+import { createSlugMap, extendSlugMap, readableSlug } from "../shared/src/slug.ts";
 import { groupDictionaryRecords } from "../shared/src/grouping.ts";
-import { definitionToText, sanitizeDefinition, truncateText } from "../shared/src/sanitize.ts";
+import {
+  cleanMakna,
+  definitionToText,
+  sanitizeDefinition,
+  truncateText,
+} from "../shared/src/sanitize.ts";
 import { displayWord, normalizeWord, tokenText, wordLetter } from "../shared/src/normalization.ts";
 
 const root = new URL("../", import.meta.url);
@@ -21,7 +26,17 @@ const sourcePaths = {
 const outputDirectory = new URL("../build/data/", import.meta.url);
 
 const FAMILY_MEMBER_LIMIT = 40;
-const EXTRAS_LIMITS = { examples: 12, derivations: 30, compounds: 40, proverbs: 12, idioms: 12 };
+const EXTRAS_LIMITS = {
+  examples: 12,
+  derivations: 30,
+  compounds: 40,
+  proverbs: 12,
+  idioms: 12,
+  variants: 12,
+};
+// Id sumber KBBI IV berhenti di ~115.988; entri KBBI VI baru memakai rentang
+// ini supaya tidak pernah bertabrakan dengan id sumber mana pun.
+const V6_ENTRY_ID_BASE = 200000;
 const KAIKKI_LIMITS = {
   forms: 16,
   derived: 24,
@@ -381,6 +396,7 @@ function createExtras() {
     compounds: new Set(),
     proverbs: new Set(),
     idioms: new Set(),
+    variants: new Set(),
   };
 }
 
@@ -399,6 +415,7 @@ function absorbExtras(extras, record) {
   absorb("compounds", record.gabungan_kata);
   absorb("proverbs", record.peribahasa);
   absorb("idioms", record.kiasan);
+  absorb("variants", record.varian);
 }
 
 function finalizeExtras(extras, slugMap) {
@@ -420,7 +437,57 @@ function finalizeExtras(extras, slugMap) {
     compounds: toList(extras.compounds, EXTRAS_LIMITS.compounds, true),
     proverbs: toList(extras.proverbs, EXTRAS_LIMITS.proverbs, false),
     idioms: toList(extras.idioms, EXTRAS_LIMITS.idioms, false),
+    variants: toList(extras.variants, EXTRAS_LIMITS.variants, true),
   };
+}
+
+function buildV6Index(records) {
+  const byWord = new Map();
+  for (const record of records) {
+    const normalizedWord = normalizeWord(record?.kata);
+    if (!normalizedWord) continue;
+    const group = byWord.get(normalizedWord);
+    if (group) group.push(record);
+    else byWord.set(normalizedWord, [record]);
+  }
+  return byWord;
+}
+
+function v6DefinitionsFor(records) {
+  const definitions = [];
+  for (const record of records ?? []) {
+    for (const makna of record?.makna ?? []) {
+      for (const cleaned of cleanMakna(makna)) {
+        const html = sanitizeDefinition(cleaned);
+        const text = definitionToText(html);
+        if (text) definitions.push({ html, text });
+      }
+    }
+  }
+  return definitions;
+}
+
+// Lema memuat bentuk tampil dengan ejaan asli (mis. "3M"); nomor homograf
+// seperti "A (1)" dibuang karena tidak mengubah bentuk dasar.
+function v6DisplayWord(record) {
+  const normalizedWord = normalizeWord(record.kata);
+  const lema = Array.isArray(record.lema) ? record.lema[0] : null;
+  if (lema) {
+    const cleaned = displayWord(lema)
+      .replace(/\s*\(\d+\)\s*/gu, " ")
+      .trim();
+    if (cleaned && normalizeWord(cleaned) === normalizedWord) return cleaned;
+  }
+  return displayWord(record.kata);
+}
+
+// Hanya lema sejati yang diimpor: harus punya makna, bukan bentuk terikat
+// (afiks "-kan", "a-"), dan bukan penanda homograf "kata (2)".
+function isImportableV6Word(normalizedWord, records) {
+  if (normalizedWord.startsWith("-") || normalizedWord.endsWith("-")) return false;
+  if (/[\(\)]/u.test(normalizedWord)) return false;
+  if (!/^[a-z0-9-]+$/u.test(readableSlug(normalizedWord))) return false;
+  return records.some((record) => v6DefinitionsFor([record]).length > 0);
 }
 
 function buildV6Extras(records, slugMap) {
@@ -475,8 +542,19 @@ async function main() {
   const groups = groupDictionaryRecords(
     [...rawDictionary].sort((left, right) => Number(left._id) - Number(right._id)),
   );
-  const slugData = createSlugMap(groups.map((group) => group.normalizedWord));
+  const ivSlugData = createSlugMap(groups.map((group) => group.normalizedWord));
   const canonicalWords = new Set(groups.map((group) => group.normalizedWord));
+  const v6Index = buildV6Index(rawV6);
+  const v6OnlyGroups = [...v6Index]
+    .filter(
+      ([normalizedWord, records]) =>
+        !canonicalWords.has(normalizedWord) && isImportableV6Word(normalizedWord, records),
+    )
+    .sort((left, right) => (left[0] < right[0] ? -1 : left[0] > right[0] ? 1 : 0));
+  const slugData = extendSlugMap(
+    ivSlugData,
+    v6OnlyGroups.map(([word]) => word),
+  );
   const relations = {
     baku: rawBaku.map((record, index) => normalizeRelation(record, index, "baku")),
     sinonim: rawSinonim.map((record, index) => normalizeRelation(record, index, "sinonim")),
@@ -494,6 +572,7 @@ async function main() {
   const entries = groups.map((group) => {
     const enrichment = enrichmentByWord.get(group.normalizedWord) ?? null;
     const definitions = group.records.map(makeDefinition);
+    const v6Definitions = v6DefinitionsFor(v6Index.get(group.normalizedWord));
     return {
       id: group.records[0]._id,
       word: group.word,
@@ -510,8 +589,37 @@ async function main() {
       rootRank: enrichment?.rootRank ?? null,
       rootFrequency: enrichment?.rootFrequency ?? null,
       extras: extrasByWord.get(group.normalizedWord) ?? null,
+      v6Definitions,
+      editions: v6Definitions.length ? ["IV", "VI"] : ["IV"],
     };
   });
+
+  let v6EntryId = V6_ENTRY_ID_BASE;
+  const v6Entries = v6OnlyGroups.map(([normalizedWord, records]) => {
+    const record = records[0];
+    return {
+      id: v6EntryId++,
+      word: v6DisplayWord(record),
+      normalizedWord,
+      slug: slugData.wordToSlug.get(normalizedWord),
+      letter: wordLetter(normalizedWord),
+      tokenText: tokenText(normalizedWord),
+      definitions: v6DefinitionsFor(records),
+      syllabifications: [],
+      frequency: null,
+      root: null,
+      rootRank: null,
+      extras: extrasByWord.get(normalizedWord) ?? null,
+      v6Definitions: [],
+      editions: ["VI"],
+    };
+  });
+  entries.push(...v6Entries);
+  if (slugData.skipped.length > 0) {
+    console.warn(
+      `SKIPPED_SLUG ${slugData.skipped.length} kata KBBI VI tidak dapat menjadi slug: ${slugData.skipped.slice(0, 5).join(", ")}`,
+    );
+  }
   const related = buildRelated(entries, relations, slugData.wordToSlug);
   for (const entry of entries) entry.related = related.get(entry.normalizedWord) ?? [];
 
@@ -548,6 +656,9 @@ async function main() {
       kaikkiHyphenationTerms: new Set(
         kaikki.filter((entry) => entry.hyphenations.length).map((entry) => entry.normalizedWord),
       ).size,
+      v6Records: rawV6.length,
+      v6OnlyHeadwords: v6Entries.length,
+      v6Definitions: entries.reduce((sum, entry) => sum + (entry.v6Definitions?.length ?? 0), 0),
     },
     entries,
     letters,

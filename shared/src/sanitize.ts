@@ -36,6 +36,7 @@ function escapeHtml(value: string): string {
 export function sanitizeDefinition(value: unknown): string {
   const source = decodeHtmlEntities(value);
   const output: string[] = [];
+  const openTags: string[] = [];
   let cursor = 0;
 
   for (const match of source.matchAll(/<\/?([a-z][\w-]*)\b[^>]*>/giu)) {
@@ -44,12 +45,23 @@ export function sanitizeDefinition(value: unknown): string {
     output.push(escapeHtml(source.slice(cursor, start)));
     if (ALLOWED_TAGS.has(tag)) {
       if (tag === "br") output.push("<br>");
-      else output.push(match[0].startsWith("</") ? `</${tag}>` : `<${tag}>`);
+      else if (match[0].startsWith("</")) {
+        // Elemen fmt KBBI bisa tak berpasangan; penutup yatim ditutup sampai
+        // tag pembuka terakhir yang cocok agar HTML tidak bocor keluar <div>.
+        const openIndex = openTags.lastIndexOf(tag);
+        if (openIndex !== -1) {
+          while (openTags.length > openIndex) output.push(`</${openTags.pop()}>`);
+        }
+      } else {
+        output.push(`<${tag}>`);
+        openTags.push(tag);
+      }
     }
     cursor = start + match[0].length;
   }
 
   output.push(escapeHtml(source.slice(cursor)));
+  while (openTags.length) output.push(`</${openTags.pop()}>`);
   return output.join("");
 }
 
@@ -60,6 +72,29 @@ export function definitionToText(value: unknown): string {
     .replace(/[ \t]+/gu, " ")
     .replace(/ *\n */gu, "\n")
     .trim();
+}
+
+// Makna KBBI VI (Definisi/kbbi) disimpan sebagai teks biasa: penomoran "1."
+// memisahkan pengertian dalam satu string, tag sudut seperti <Pr> menandai
+// bahasa sumber, dan penanda kelas seperti [n] dipertahankan apa adanya.
+export function cleanMakna(value: unknown): string[] {
+  const output: string[] = [];
+  for (const rawLine of String(value ?? "").split(/\r?\n+/u)) {
+    const startsNew = /^\s*\d+\.\s*/u.test(rawLine);
+    const line = rawLine.replace(/^\s*\d+\.\s*/u, "").trim();
+    if (!line) continue;
+    if (startsNew || output.length === 0) output.push(line);
+    else output[output.length - 1] += ` ${line}`;
+  }
+  return output
+    .map((line) =>
+      line
+        .replace(/<([A-Za-z]+)>/gu, "($1)")
+        .replace(/\s+/gu, " ")
+        .replace(/\s*;\s*$/u, "")
+        .trim(),
+    )
+    .filter(Boolean);
 }
 
 export function truncateText(value: unknown, maxLength = 220): string {

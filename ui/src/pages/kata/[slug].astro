@@ -1,12 +1,13 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import WordGraph from "../../components/WordGraph.svelte";
-import { getWordPage, getWordGraph } from "../../lib/server-data.js";
+import { getWordPage, getWordGraph, getWordRhymes } from "../../lib/server-data.js";
+import { rhymeDisplay, rhymePath } from "../../lib/rhyme.js";
 import { absoluteRoute, sitePath } from "../../lib/site.js";
 
 export const prerender = false;
 
-type Definition = { html: string; text: string; type: number | null };
+type Definition = { html: string; text: string; type: number | null; edition?: string };
 type Related = { word: string; slug: string; kind: string };
 type Neighbor = { word: string; slug: string } | null;
 type ExtraItem = { text: string; slug: string | null };
@@ -33,10 +34,26 @@ type Extras = {
   compounds: ExtraItem[];
   proverbs: ExtraItem[];
   idioms: ExtraItem[];
+  variants: string[];
 };
 type SlangForm = { slang: string; formal: string; categories: string[] };
 type SlangTarget = { word: string; slug: string };
 type FamilyMember = { word: string; slug: string | null; frequency: number };
+type RhymeWord = { word: string; slug: string };
+type RhymeGroup = { key: string; words: RhymeWord[] };
+type CorpusNode = { word: string; slug: string | null; freq: number; sig: number };
+type CorpusGraph = {
+  word: string;
+  anchorId: string;
+  sentences: number;
+  freq: number;
+  corpusSentences: number;
+  nodes: CorpusNode[];
+  edges: unknown[];
+  left: CorpusNode[];
+  right: CorpusNode[];
+  examples: string[];
+};
 type WordPage = {
   id: number;
   word: string;
@@ -51,6 +68,7 @@ type WordPage = {
   rootWord: string | null;
   rootSlug: string | null;
   definitions: Definition[];
+  v6Definitions: Definition[];
   etymologyRelations: EtymologyRelation[];
   kaikkiEntries: KaikkiEntry[];
   extras: Extras | null;
@@ -63,7 +81,10 @@ type WordPage = {
 };
 const entry = getWordPage(Astro.params.slug ?? "") as WordPage | null;
 if (!entry) Astro.response.status = 404;
-const graph = entry ? getWordGraph(entry.slug) : null;
+const graph = entry ? (getWordGraph(entry.slug) as CorpusGraph | null) : null;
+const rhymes: { akhir: RhymeGroup; awal: RhymeGroup } | null = entry
+  ? (getWordRhymes(entry.normalizedWord, 12) as { akhir: RhymeGroup; awal: RhymeGroup })
+  : null;
 const maxGraphSig = graph ? Math.max(...graph.nodes.map((node) => node.sig), 1) : 1;
 const exampleHtml = (sentence: string) =>
   sentence
@@ -73,6 +94,8 @@ const exampleHtml = (sentence: string) =>
     .replace(/«([^»]*)»/g, "<strong>$1</strong>")
     .replace(/[«»]/g, "");
 const definitions = entry?.definitions ?? [];
+const v6Definitions = entry?.v6Definitions ?? [];
+const isV6Only = definitions.length === 0 && v6Definitions.length > 0;
 const etymologyRelations = entry?.etymologyRelations ?? [];
 const kaikkiEntries = entry?.kaikkiEntries ?? [];
 const extras = entry?.extras ?? null;
@@ -155,7 +178,9 @@ const etymologyLabels: Record<string, string> = {
 const etymologyLabel = (relationType: string) =>
   etymologyLabels[relationType] ?? relationType.replaceAll("_", " ");
 const definitionText =
-  definitions.map((item: Definition) => item.text).join(" ") || "Kata tidak ditemukan.";
+  definitions.map((item: Definition) => item.text).join(" ") ||
+  v6Definitions.map((item: Definition) => item.text).join(" ") ||
+  "Kata tidak ditemukan.";
 const description = entry
   ? `${entry.word}: ${definitionText.slice(0, 150)}${definitionText.length > 150 ? "…" : ""}`
   : "Entri kamus yang diminta tidak ditemukan.";
@@ -264,7 +289,10 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
             <p class="word-normalized">
               Bentuk terindeks: <span>{entry.normalizedWord}</span>
             </p>
-            {(entry.frequency != null || entry.rootWord) && (
+            {(entry.frequency != null ||
+              entry.rootWord ||
+              isV6Only ||
+              (extras?.variants?.length ?? 0) > 0) && (
               <div class="word-meta">
                 {entry.frequency != null && (
                   <span class="meta-chip">
@@ -275,6 +303,12 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
                   <a class="meta-chip is-link" href={sitePath(`/kata/${entry.rootSlug}/`)}>
                     Akar kata: <b>{entry.rootWord}</b>
                   </a>
+                )}
+                {isV6Only && <span class="meta-chip">Entri KBBI Edisi VI</span>}
+                {(extras?.variants?.length ?? 0) > 0 && (
+                  <span class="meta-chip">
+                    Varian: <b>{extras!.variants.join(", ")}</b>
+                  </span>
                 )}
               </div>
             )}
@@ -287,18 +321,20 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
                 <>
                   <p class="eyebrow">
                     <span />
-                    Definisi
+                    {definitions.length > 0 ? "Definisi" : "Definisi · KBBI Edisi VI"}
                   </p>
                   <h2 id="definitions-title">Arti</h2>
                 </>
               </div>
               <ol class="definitions">
-                {definitions.map((definition: Definition) => (
-                  <li>
-                    <span>{definition.type == null ? "Makna" : `Tipe ${definition.type}`}</span>
-                    <div set:html={definition.html} />
-                  </li>
-                ))}
+                {(definitions.length > 0 ? definitions : v6Definitions).map(
+                  (definition: Definition) => (
+                    <li>
+                      <span>{definition.type == null ? "Makna" : `Tipe ${definition.type}`}</span>
+                      <div set:html={definition.html} />
+                    </li>
+                  ),
+                )}
               </ol>
             </>
           </section>
@@ -326,6 +362,32 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
             </>
           </aside>
         </div>
+        {v6Definitions.length > 0 && definitions.length > 0 && (
+          <section class="word-extras" aria-labelledby="v6-definitions-title">
+            <div class="word-section-heading">
+              <p class="eyebrow">
+                <span />
+                KBBI Edisi VI
+              </p>
+              <h2 id="v6-definitions-title">Arti versi VI</h2>
+            </div>
+            <p class="etymology-note">
+              Definisi berikut berasal dari ekstraksi aplikasi resmi KBBI VI yang dipublikasikan
+              <a href="https://github.com/Definisi/kbbi" target="_blank" rel="noreferrer">
+                Definisi/kbbi
+              </a>
+              ; dipakai sebagai pembanding, bukan pengganti KBBI IV.
+            </p>
+            <ol class="definitions">
+              {v6Definitions.map((definition: Definition) => (
+                <li>
+                  <span>Makna</span>
+                  <div set:html={definition.html} />
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
         {etymologyRelations.length > 0 && (
           <section class="word-extras" aria-labelledby="etymology-title">
             <div class="word-section-heading">
@@ -677,6 +739,57 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
                 ))}
                 .
               </p>
+            )}
+          </section>
+        )}
+        {rhymes && (rhymes.akhir.words.length > 0 || rhymes.awal.words.length > 0) && (
+          <section class="word-extras" aria-labelledby="rhyme-title">
+            <div class="word-section-heading">
+              <p class="eyebrow">
+                <span />
+                Bunyi yang serupa
+              </p>
+              <h2 id="rhyme-title">Kata berima</h2>
+            </div>
+            {rhymes.akhir.words.length > 0 && (
+              <>
+                <p class="slang-note">
+                  Rima akhir{" "}
+                  <a href={sitePath(rhymePath("akhir", rhymes.akhir.key))}>
+                    <strong>{rhymeDisplay(rhymes.akhir.key, "akhir")}</strong>
+                  </a>{" "}
+                  — <a href={sitePath(rhymePath("akhir", rhymes.akhir.key))}>lihat semuanya</a>:
+                </p>
+                <ul class="chip-list">
+                  {rhymes.akhir.words.map((word: RhymeWord) => (
+                    <li>
+                      <a href={sitePath(`/kata/${word.slug}/`)}>
+                        <strong>{word.word}</strong>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {rhymes.awal.words.length > 0 && (
+              <>
+                <p class="slang-note">
+                  Rima awal{" "}
+                  <a href={sitePath(rhymePath("awal", rhymes.awal.key))}>
+                    <strong>{rhymeDisplay(rhymes.awal.key, "awal")}</strong>
+                  </a>{" "}
+                  — <a href={sitePath(rhymePath("awal", rhymes.awal.key))}>lihat semuanya</a>:
+                </p>
+                <ul class="chip-list">
+                  {rhymes.awal.words.map((word: RhymeWord) => (
+                    <li>
+                      <a href={sitePath(`/kata/${word.slug}/`)}>
+                        <strong>{word.word}</strong>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
           </section>
         )}

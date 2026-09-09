@@ -106,7 +106,9 @@ main {
   min-height: 72px;
   padding: 0 clamp(20px, 5vw, 72px);
   border-bottom: 1px solid var(--line);
-  background: rgb(255 255 255 / 96%);
+  background: rgb(255 255 255 / 92%);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 
 .brand {
@@ -2304,6 +2306,10 @@ main {
 }
 
 .site-footer > a:not(.brand) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 2px;
   color: var(--accent);
   font-size: 11px;
   font-weight: 600;
@@ -3077,4 +3083,415 @@ main {
   .word-graph-lists {
     grid-template-columns: 1fr;
   }
+}
+
+/* Pencarian rima */
+.rhyme-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.rhyme-form .engine-search {
+  flex: 1 1 280px;
+}
+
+.rhyme-kind-picker {
+  display: flex;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+}
+
+.rhyme-kind-picker label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.rhyme-kind-picker label:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+  color: var(--accent);
+}
+
+.rhyme-kind-picker input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+@media (max-width: 960px) {
+  .rhyme-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Dokumentasi API */
+.api-docs {
+  display: grid;
+  gap: 44px;
+  max-width: 860px;
+}
+
+.api-docs p {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.api-docs code {
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--soft);
+  font-family: ui-monospace, sfmono-regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.api-docs pre {
+  margin: 0 0 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--soft);
+  overflow-x: auto;
+  color: var(--ink);
+  font-family: ui-monospace, sfmono-regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.api-endpoints {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.api-endpoints li {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--surface);
+}
+
+.api-endpoints li > code {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.api-endpoints li p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.api-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.api-types li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--surface);
+}
+
+.api-types small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.api-note {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--accent-wash);
+  color: var(--ink);
+  font-size: 13px;
+}
+
+/* Ejaan (EYD V): markdown-rendered reference. */
+.eyd-page {
+  padding-top: 54px;
+  padding-bottom: 100px;
+}
+
+.eyd-doc {
+  max-width: 860px;
+}
+
+.eyd-doc h2 {
+  margin: 54px 0 0;
+  padding-top: 22px;
+  border-top: 1px solid var(--line-strong);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.eyd-doc h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.eyd-doc h3 {
+  margin: 44px 0 14px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: -0.02em;
+}
+
+.eyd-doc h2 + h3,
+.eyd-doc h3:first-child {
+  margin-top: 26px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.eyd-doc h4 {
+  margin: 28px 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+.eyd-doc p {
+  max-width: 72ch;
+  margin: 14px 0;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+/* "Misalnya:" example boxes and blockquotes. */
+.eyd-doc blockquote {
+  margin: 14px 0 22px;
+  padding: 16px 18px;
+  border-left: 2px solid var(--ink);
+  background: var(--soft);
+}
+
+.eyd-doc blockquote p {
+  margin: 10px 0;
+  font-size: 15px;
+}
+
+.eyd-doc blockquote > :first-child {
+  margin-top: 0;
+}
+
+.eyd-doc blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.eyd-doc blockquote ul {
+  margin: 10px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.eyd-doc blockquote li {
+  position: relative;
+  padding: 4px 0 4px 20px;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.eyd-doc blockquote li::before {
+  position: absolute;
+  left: 4px;
+  color: var(--quiet);
+  content: "·";
+  font-weight: 700;
+}
+
+.eyd-doc blockquote hr {
+  margin: 14px 0;
+  border: 0;
+  border-top: 1px solid var(--line-strong);
+}
+
+.eyd-doc blockquote table {
+  margin: 12px 0;
+}
+
+.eyd-doc blockquote img {
+  max-width: min(300px, 100%);
+  height: auto;
+}
+
+/* Rule tables. */
+.eyd-doc table {
+  width: 100%;
+  margin: 16px 0 24px;
+  border-collapse: collapse;
+}
+
+.eyd-doc th {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line-strong);
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.eyd-doc td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+  line-height: 1.6;
+  vertical-align: top;
+}
+
+.eyd-doc th[align="center"],
+.eyd-doc td[align="center"] {
+  text-align: center;
+}
+
+.eyd-doc th[align="right"],
+.eyd-doc td[align="right"] {
+  text-align: right;
+}
+
+.eyd-neighbors {
+  margin-top: 64px;
+}
+
+.eyd-source {
+  margin: 26px 0 0;
+  padding-left: 17px;
+  border-left: 2px solid var(--line-strong);
+  color: var(--quiet);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .eyd-page {
+    padding-top: 34px;
+    padding-bottom: 78px;
+  }
+
+  .eyd-doc h2 {
+    font-size: 22px;
+  }
+
+  .eyd-doc h3 {
+    margin-top: 36px;
+    font-size: 17px;
+  }
+
+  .eyd-doc > ol li,
+  .eyd-doc .eyd-index li {
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  .eyd-doc td,
+  .eyd-doc th {
+    padding: 8px 8px;
+    font-size: 13px;
+  }
+}
+
+.eyd-doc ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: eyd;
+}
+
+.eyd-doc > ol li,
+.eyd-doc .eyd-index li {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 16px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--line);
+  counter-increment: eyd;
+}
+
+.eyd-doc > ol li::before,
+.eyd-doc .eyd-index li::before {
+  color: var(--accent);
+  content: counter(eyd, upper-alpha) ".";
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.eyd-doc > ol a,
+.eyd-doc .eyd-index a {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.eyd-doc > ol a::after,
+.eyd-doc .eyd-index a::after {
+  color: var(--accent);
+  content: " ↗";
+  font-size: 12px;
+}
+
+.eyd-doc > ol a:hover,
+.eyd-doc .eyd-index a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 4px;
+}
+
+.eyd-doc hr {
+  margin: 56px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line-strong);
+}
+
+.eyd-doc hr + p {
+  margin: 14px 0 0;
+  padding-left: 17px;
+  border-left: 2px solid var(--line-strong);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.eyd-doc hr + p a {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }

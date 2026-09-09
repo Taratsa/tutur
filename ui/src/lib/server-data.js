@@ -1,7 +1,10 @@
 import { Database } from "bun:sqlite";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { alliterationKey, rhymeKey } from "@tutur/shared/rhyme";
 import { LETTER_ORDER, WORDS_PER_PAGE, letterPath, pageCount } from "./alphabet.js";
+
+export const RHYME_KINDS = ["akhir", "awal"];
 
 let database;
 let dailyWordCache;
@@ -46,6 +49,7 @@ export function getSiteStats() {
     sinonimRecords: metadata.sinonimRecords,
     antonimRecords: metadata.antonimRecords,
     slangRecords: metadata.slangRecords,
+    rhymeKeys: metadata.rhymeKeys,
     slugCollisionCount: metadata.slugCollisionCount,
     enrichedWords: metadata.enrichedWords,
     extrasEntries: metadata.extrasEntries,
@@ -178,7 +182,7 @@ export function getWordPage(slug) {
   if (!entry) return null;
   const definitions = db()
     .query(
-      "SELECT ordinal, definition_html, definition_text, entry_type FROM definitions WHERE entry_id = ? ORDER BY ordinal",
+      "SELECT ordinal, definition_html, definition_text, entry_type, edition FROM definitions WHERE entry_id = ? ORDER BY ordinal",
     )
     .all(entry.id)
     .map((definition) => ({
@@ -186,7 +190,10 @@ export function getWordPage(slug) {
       html: definition.definition_html,
       text: definition.definition_text,
       type: definition.entry_type,
+      edition: definition.edition ?? "IV",
     }));
+  const ivDefinitions = definitions.filter((definition) => definition.edition !== "VI");
+  const v6Definitions = definitions.filter((definition) => definition.edition === "VI");
   const etymologyRelations = db()
     .query(
       "SELECT relation_type, related_lang, related_term FROM etymology_relations WHERE normalized_term = ? AND substr(relation_type, 1, 6) != 'group_' ORDER BY id",
@@ -226,7 +233,7 @@ export function getWordPage(slug) {
     : null;
   const extras = db()
     .query(
-      "SELECT pronunciation, etymology, examples, derivations, compounds, proverbs, idioms FROM entry_extras WHERE entry_id = ?",
+      "SELECT pronunciation, etymology, examples, derivations, compounds, proverbs, idioms, variants FROM entry_extras WHERE entry_id = ?",
     )
     .get(entry.id);
   const slangForms = entry.slug
@@ -264,7 +271,8 @@ export function getWordPage(slug) {
     syllabifications: parseCategories(entry.syllabifications),
     rootWord: rootEntry?.word ?? null,
     rootSlug: rootEntry?.slug ?? null,
-    definitions,
+    definitions: ivDefinitions,
+    v6Definitions,
     etymologyRelations,
     kaikkiEntries,
     extras: extras
@@ -276,6 +284,7 @@ export function getWordPage(slug) {
           compounds: parseList(extras.compounds),
           proverbs: parseList(extras.proverbs),
           idioms: parseList(extras.idioms),
+          variants: parseList(extras.variants),
         }
       : null,
     slangForms,
@@ -328,6 +337,65 @@ export function getPopularWords(limit = 100) {
     )
     .all(limit)
     .map((row) => ({ word: row.word, slug: row.slug, frequency: row.frequency, root: row.root }));
+}
+
+function isRhymeKind(kind) {
+  return RHYME_KINDS.includes(kind);
+}
+
+export function getRhymeGroup(kind, key, page = 1) {
+  if (!isRhymeKind(kind) || !/^[a-z0-9]{2,}$/u.test(key)) return null;
+  const total =
+    db().query("SELECT COUNT(*) AS count FROM rhyme_keys WHERE kind = ? AND key = ?").get(kind, key)
+      ?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / WORDS_PER_PAGE));
+  if (total === 0 || page < 1 || page > totalPages) return null;
+  const entries = db()
+    .query(
+      "SELECT e.word, e.slug, e.summary FROM (SELECT entry_id FROM rhyme_keys WHERE kind = ? AND key = ? ORDER BY frequency DESC, entry_id LIMIT ? OFFSET ?) AS k JOIN entries AS e ON e.id = k.entry_id",
+    )
+    .all(kind, key, WORDS_PER_PAGE, (page - 1) * WORDS_PER_PAGE)
+    .map((row) => ({ word: row.word, slug: row.slug, summary: row.summary }));
+  return { kind, key, page, total, totalPages, entries };
+}
+
+// Database read-only: agregasi grup rima tidak pernah berubah selama proses
+// hidup, jadi cukup dihitung sekali per jenis agar halaman /rima/ tetap cepat.
+const popularRhymeGroupsCache = new Map();
+
+export function getPopularRhymeGroups(kind, limit = 24) {
+  if (!isRhymeKind(kind)) return [];
+  const cacheKey = `${kind}:${limit}`;
+  if (!popularRhymeGroupsCache.has(cacheKey)) {
+    popularRhymeGroupsCache.set(
+      cacheKey,
+      db()
+        .query(
+          "SELECT k.key, COUNT(*) AS total FROM rhyme_keys AS k JOIN entries AS e ON e.id = k.entry_id WHERE k.kind = ? GROUP BY k.key HAVING COUNT(*) > 1 ORDER BY total DESC, k.key LIMIT ?",
+        )
+        .all(kind, limit)
+        .map((row) => ({ key: row.key, total: row.total })),
+    );
+  }
+  return popularRhymeGroupsCache.get(cacheKey);
+}
+
+export function getWordRhymes(normalizedWord, limit = 12) {
+  const rhymeQuery =
+    "SELECT e.word, e.slug FROM (SELECT entry_id FROM rhyme_keys WHERE kind = ? AND key = ? ORDER BY frequency DESC, entry_id LIMIT ?) AS k JOIN entries AS e ON e.id = k.entry_id WHERE e.normalized_word != ? LIMIT ?";
+  const akhir = {
+    key: rhymeKey(normalizedWord),
+    words: db()
+      .query(rhymeQuery)
+      .all("akhir", rhymeKey(normalizedWord), limit + 2, normalizedWord, limit),
+  };
+  const awal = {
+    key: alliterationKey(normalizedWord),
+    words: db()
+      .query(rhymeQuery)
+      .all("awal", alliterationKey(normalizedWord), limit + 2, normalizedWord, limit),
+  };
+  return { akhir, awal };
 }
 
 export function getWordGraph(slug) {

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { createSlugMap } from "../src/slug.js";
+import { createSlugMap, extendSlugMap } from "../src/slug.js";
 
 test("slug generation is readable and stable", () => {
   const first = createSlugMap(["Bahasa", "tanggung jawab", "2-in-1", "Élan"]);
@@ -17,4 +17,22 @@ test("distinct words that share a readable slug get stable suffixes", () => {
   expect(slugs.wordToSlug.get("a b")).toBe("a-b");
   expect(slugs.wordToSlug.get("a-b")).toBe("a-b-2");
   expect(slugs.wordToSlug.get("a/b")).toBe("a-b-3");
+});
+
+test("extendSlugMap keeps existing slugs frozen and suffixes only new words", () => {
+  const base = createSlugMap(["bahasa", "makan"]);
+  const extended = extendSlugMap(base, ["makan", "ba ha sa", "bahasa-"]);
+
+  expect(extended.wordToSlug.get("bahasa")).toBe(base.wordToSlug.get("bahasa"));
+  expect(extended.wordToSlug.get("makan")).toBe(base.wordToSlug.get("makan"));
+  expect(extended.wordToSlug.get("ba ha sa")).toBe("ba-ha-sa");
+  expect(extended.wordToSlug.get("bahasa-")).toBe("bahasa-2");
+  expect(extended.skipped).toEqual([]);
+});
+
+test("extendSlugMap skips words that cannot become slugs", () => {
+  const base = createSlugMap(["bahasa"]);
+  const extended = extendSlugMap(base, ["—"]);
+  expect(extended.wordToSlug.size).toBe(1);
+  expect(extended.skipped).toEqual(["—"]);
 });

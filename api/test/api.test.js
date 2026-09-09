@@ -178,9 +178,12 @@ afterEach(async () => {
   if (databasePath) await rm(databasePath, { force: true });
 });
 
-function setup(env = { RATE_LIMIT_PER_MINUTE: "120", CORS_ORIGIN: "http://localhost:4321" }) {
+function setup(
+  env = { RATE_LIMIT_PER_MINUTE: "120", CORS_ORIGIN: "http://localhost:4321" },
+  data = fixture,
+) {
   databasePath = `/tmp/tutur-search-fixture-${process.pid}-${Math.random().toString(16).slice(2)}.sqlite`;
-  buildDatabase(fixture, databasePath);
+  buildDatabase(data, databasePath);
   db = new Database(databasePath, { readonly: true });
   app = createApp({ db, env });
 }
@@ -430,4 +433,219 @@ test("CORS is limited to configured origins", async () => {
     headers: { Origin: "https://other.example" },
   });
   expect(denied.headers.get("access-control-allow-origin")).toBeNull();
+});
+
+const rhymeFixture = {
+  stats: {
+    ...fixture.stats,
+    dictionaryRecords: 5,
+    uniqueHeadwords: 6,
+  },
+  entries: [
+    {
+      id: 1,
+      word: "bahasa",
+      normalizedWord: "bahasa",
+      slug: "bahasa",
+      letter: "b",
+      definitions: [{ id: 1, type: 1, html: "<b>bahasa</b>", text: "sistem lambang bunyi" }],
+      syllabifications: ["ba·ha·sa"],
+      frequency: 500000,
+      root: null,
+      rootRank: null,
+      extras: null,
+      v6Definitions: [
+        {
+          html: "1. [n] {Ling} sistem lambang bunyi yang arbitrer",
+          text: "1. [n] {Ling} sistem lambang bunyi yang arbitrer",
+        },
+      ],
+      editions: ["IV", "VI"],
+    },
+    {
+      id: 2,
+      word: "rasa",
+      normalizedWord: "rasa",
+      slug: "rasa",
+      letter: "r",
+      definitions: [{ id: 2, type: 1, html: "<b>rasa</b>", text: "hasil kemauan" }],
+      syllabifications: ["ra·sa"],
+      frequency: 300000,
+      root: null,
+      rootRank: null,
+      extras: null,
+    },
+    {
+      id: 3,
+      word: "puasa",
+      normalizedWord: "puasa",
+      slug: "puasa",
+      letter: "p",
+      definitions: [{ id: 3, type: 1, html: "<b>puasa</b>", text: "tidak makan" }],
+      syllabifications: ["pu·a·sa"],
+      frequency: null,
+      root: null,
+      rootRank: null,
+      extras: null,
+    },
+    {
+      id: 4,
+      word: "baku",
+      normalizedWord: "baku",
+      slug: "baku",
+      letter: "b",
+      definitions: [{ id: 4, type: 1, html: "<b>baku</b>", text: "tetap" }],
+      syllabifications: ["ba·ku"],
+      frequency: 42000,
+      root: null,
+      rootRank: null,
+      extras: null,
+    },
+    {
+      id: 5,
+      word: "bakar",
+      normalizedWord: "bakar",
+      slug: "bakar",
+      letter: "b",
+      definitions: [{ id: 5, type: 1, html: "<b>bakar</b>", text: "hanguskan" }],
+      syllabifications: ["ba·kar"],
+      frequency: 7000,
+      root: null,
+      rootRank: null,
+      extras: null,
+    },
+    {
+      id: 200001,
+      word: "tifosi",
+      normalizedWord: "tifosi",
+      slug: "tifosi",
+      letter: "t",
+      definitions: [
+        {
+          id: 6,
+          type: null,
+          html: "[n] (It) {Olr} sebutan pendukung fanatik",
+          text: "[n] (It) {Olr} sebutan pendukung fanatik",
+        },
+      ],
+      syllabifications: [],
+      frequency: null,
+      root: null,
+      rootRank: null,
+      extras: null,
+      editions: ["VI"],
+    },
+  ],
+  relations: { baku: [], sinonim: [], antonim: [], slang: [], etymology: [] },
+  kaikki: [],
+  families: [],
+};
+
+function setupRhyme(env = { RATE_LIMIT_PER_MINUTE: "120", CORS_ORIGIN: "http://localhost:4321" }) {
+  setup(env, rhymeFixture);
+}
+
+test("rhyme search returns the end-rhyme group ordered by corpus frequency", async () => {
+  setupRhyme();
+  expect(db.query("SELECT COUNT(*) AS count FROM rhyme_keys").get().count).toBe(12);
+  const response = await app.request("http://localhost/api/search?q=bahasa&type=rima&limit=20");
+  expect(response.status).toBe(200);
+  const json = await response.json();
+  expect(json.results).toHaveLength(2);
+  expect(json.results.map((item) => item.word)).toEqual(["rasa", "puasa"]);
+  expect(json.results[0]).toMatchObject({
+    type: "rima",
+    slug: "rasa",
+    url: "/kata/rasa/",
+    summary: "hasil kemauan",
+  });
+});
+
+test("alliteration search returns the start-rhyme group ordered by corpus frequency", async () => {
+  setupRhyme();
+  const response = await app.request("http://localhost/api/search?q=bahasa&type=rima-awal");
+  expect(response.status).toBe(200);
+  const json = await response.json();
+  expect(json.results.map((item) => item.word)).toEqual(["baku", "bakar"]);
+  expect(json.results[0].type).toBe("rima-awal");
+});
+
+test("rhyme queries without a matching group return an empty result set", async () => {
+  setupRhyme();
+  const response = await app.request("http://localhost/api/search?q=zzqx&type=rima");
+  expect(response.status).toBe(200);
+  expect((await response.json()).results).toEqual([]);
+});
+
+test("rhyme search shares validation and cache keying with the main search", async () => {
+  setupRhyme();
+  const tooShort = await app.request("http://localhost/api/search?q=b&type=rima");
+  expect(tooShort.status).toBe(400);
+  const invalidType = await app.request("http://localhost/api/search?q=bahasa&type=rima-lain");
+  expect(invalidType.status).toBe(400);
+  const rhyme = await app.request("http://localhost/api/search?q=bahasa&type=rima");
+  const dictionary = await app.request("http://localhost/api/search?q=bahasa&type=dictionary");
+  expect(rhyme.status).toBe(200);
+  expect(dictionary.status).toBe(200);
+  const rhymeJson = await rhyme.json();
+  const dictionaryJson = await dictionary.json();
+  expect(rhymeJson.results[0].type).toBe("rima");
+  expect(dictionaryJson.results[0].type).toBe("dictionary");
+});
+
+test("API is publicly accessible when CORS_ORIGIN is unset or a wildcard", async () => {
+  setup({});
+  const unconfigured = await app.request("http://localhost/health", {
+    headers: { Origin: "https://someone-else.example" },
+  });
+  expect(unconfigured.headers.get("access-control-allow-origin")).toBe("*");
+  setup({ CORS_ORIGIN: "*" });
+  const wildcard = await app.request("http://localhost/api/search?q=bahasa", {
+    headers: { Origin: "https://someone-else.example" },
+  });
+  expect(wildcard.headers.get("access-control-allow-origin")).toBe("*");
+  const preflight = await app.request("http://localhost/api/search?q=bahasa", {
+    method: "OPTIONS",
+    headers: {
+      Origin: "https://someone-else.example",
+      "Access-Control-Request-Method": "GET",
+    },
+  });
+  expect(preflight.status).toBe(204);
+  expect(preflight.headers.get("access-control-allow-origin")).toBe("*");
+});
+
+test("KBBI VI definitions are stored with an edition marker", async () => {
+  setupRhyme();
+  const rows = db
+    .query(
+      "SELECT edition, definition_text FROM definitions WHERE entry_id = (SELECT id FROM entries WHERE slug = 'bahasa') ORDER BY edition",
+    )
+    .all();
+  expect(rows).toHaveLength(2);
+  expect(rows[0].edition).toBe("IV");
+  expect(rows[1].edition).toBe("VI");
+  // Ringkasan pencarian tetap memakai definisi IV.
+  const search = await app.request("http://localhost/api/search?q=bahasa&type=dictionary");
+  const json = await search.json();
+  expect(json.results[0].summary).toBe("sistem lambang bunyi");
+});
+
+test("v6-only headwords are searchable and rhyme-enabled", async () => {
+  setupRhyme();
+  const search = await app.request("http://localhost/api/search?q=tifosi&type=dictionary");
+  expect(search.status).toBe(200);
+  const json = await search.json();
+  expect(json.results).toHaveLength(1);
+  expect(json.results[0]).toMatchObject({
+    type: "dictionary",
+    slug: "tifosi",
+    summary: "[n] (It) {Olr} sebutan pendukung fanatik",
+  });
+  const rhymeRows = db
+    .query(
+      "SELECT kind FROM rhyme_keys WHERE entry_id = (SELECT id FROM entries WHERE slug = 'tifosi')",
+    )
+    .all();
+  expect(rhymeRows.map((row) => row.kind).sort()).toEqual(["akhir", "awal"]);
 });

@@ -22,6 +22,11 @@ const dbSlugs = new Set(
 const graphCorpusSentences = Number(
   db.query("SELECT value FROM metadata WHERE key = 'graphCorpusSentences'").get()?.value ?? 0,
 );
+const largestRhymeGroup = db
+  .query(
+    "SELECT kind, key FROM rhyme_keys GROUP BY kind, key HAVING COUNT(*) >= 2 ORDER BY COUNT(*) DESC LIMIT 1",
+  )
+  .get();
 db.close();
 
 if (
@@ -94,10 +99,17 @@ try {
     !/<h1>Cari arti kata\.<\/h1>/u.test(homeHtml) ||
     !homeHtml.includes(`<time datetime="${jakartaDate}">`) ||
     !homeHtml.includes("home-word-of-day--mobile") ||
+    !/<meta property="og:image" content="https?:\/\/[^"]+\/og-home\.png">/u.test(homeHtml) ||
+    !homeHtml.includes('<meta property="og:image:width" content="1920">') ||
+    !homeHtml.includes('<meta property="og:image:height" content="1080">') ||
     !dailyWordSlug ||
     !dbSlugs.has(dailyWordSlug)
   )
     throw new Error("SSR home page is missing today's linked word");
+  const homeImage = await get("/og-home.png");
+  if (homeImage.status !== 200 || homeImage.headers.get("content-type") !== "image/png") {
+    throw new Error("Homepage social image is not served locally as PNG");
+  }
 
   const enriched = await get("/kata/abu/");
   const enrichedHtml = await enriched.text();
@@ -156,6 +168,71 @@ try {
   const missing = await get("/kata/not-a-real-kbbi-slug/");
   if (missing.status !== 404)
     throw new Error(`Unknown word returned ${missing.status} instead of 404`);
+
+  const wordHtmlHasRhymes = /Kata berima/u.test(wordHtml);
+  const v6Entry = data.entries.find((entry) => (entry.editions ?? []).includes("VI"));
+  if (!v6Entry) throw new Error("Prepared data has no KBBI VI entries");
+  const v6Page = await get(`/kata/${v6Entry.slug}/`);
+  const v6PageHtml = await v6Page.text();
+  if (
+    v6Page.status !== 200 ||
+    !/KBBI Edisi VI/u.test(v6PageHtml) ||
+    !/<ol class="definitions">/u.test(v6PageHtml)
+  )
+    throw new Error("KBBI VI entry page is missing its VI definitions section");
+  const v6OnlyEntry = data.entries.find(
+    (entry) => (entry.editions ?? []).length === 1 && entry.editions[0] === "VI",
+  );
+  if (v6OnlyEntry) {
+    const v6OnlyPage = await get(`/kata/${v6OnlyEntry.slug}/`);
+    if (v6OnlyPage.status !== 200 || !/Entri KBBI Edisi VI/u.test(await v6OnlyPage.text()))
+      throw new Error("Pure KBBI VI entry is missing its edition marker");
+  }
+  const ivWithV6 = data.entries.find(
+    (entry) => (entry.editions ?? []).includes("IV") && (entry.editions ?? []).includes("VI"),
+  );
+  if (ivWithV6) {
+    const dualPage = await get(`/kata/${ivWithV6.slug}/`);
+    const dualHtml = await dualPage.text();
+    if (dualPage.status !== 200 || !/Arti versi VI/u.test(dualHtml) || !/Definisi/u.test(dualHtml))
+      throw new Error("Dual-edition word page is missing its KBBI VI comparison section");
+  }
+  const rimaLanding = await get("/rima/");
+  const rimaLandingHtml = await rimaLanding.text();
+  if (
+    rimaLanding.status !== 200 ||
+    !/Rima akhir/u.test(rimaLandingHtml) ||
+    !/Rima awal/u.test(rimaLandingHtml) ||
+    (rimaLandingHtml.match(/chip-list/gu) || []).length < 2
+  )
+    throw new Error("Rhyme landing page is missing its kind sections or group chips");
+  if (!largestRhymeGroup) throw new Error("Prepared database has no rhyme groups");
+  const rimaGroupPath = `/rima/${largestRhymeGroup.kind}/${largestRhymeGroup.key}/`;
+  const rimaGroup = await get(rimaGroupPath);
+  const rimaGroupHtml = await rimaGroup.text();
+  if (
+    rimaGroup.status !== 200 ||
+    !/<ol class="alphabet-word-list">/u.test(rimaGroupHtml) ||
+    !rimaGroupHtml.includes(rimaGroupPath) ||
+    (rimaGroupHtml.match(/<li>/gu) || []).length < 2
+  )
+    throw new Error("Rhyme group page is missing its word list");
+  const rimaUppercase = await get(
+    `/rima/${largestRhymeGroup.kind}/${largestRhymeGroup.key.toUpperCase()}/`,
+  );
+  if (
+    ![301, 308].includes(rimaUppercase.status) ||
+    !rimaUppercase.headers.get("location")?.endsWith(rimaGroupPath)
+  )
+    throw new Error("Uppercase rhyme URL was not redirected");
+  const rimaFormSubmit = await get("/rima/?q=bahasa");
+  if (
+    ![301, 308].includes(rimaFormSubmit.status) ||
+    !rimaFormSubmit.headers.get("location")?.endsWith("/rima/akhir/asa/")
+  )
+    throw new Error("Rhyme landing form did not redirect to the computed rhyme group");
+  if (!wordHtmlHasRhymes) throw new Error("Representative word page is missing its rhyme section");
+
   const alphabet = await get("/huruf/a/");
   if (alphabet.status !== 200 || !/<ol class="alphabet-word-list">/u.test(await alphabet.text()))
     throw new Error("Alphabet SSR page failed");
@@ -176,9 +253,17 @@ try {
   const sitemapIndex = await sitemapIndexResponse.text();
   if (sitemapIndexResponse.status !== 200) throw new Error("Sitemap index failed");
   const locations = (source) =>
-    [...source.matchAll(/<loc>(.*?)<\/loc>/gu)].map((match) =>
-      match[1].replaceAll("&amp;", "&").replaceAll("&lt;", "<").replaceAll("&gt;", ">"),
-    );
+    [...source.matchAll(/<loc>(.*?)<\/loc>/gu)].map((match) => {
+      const value = match[1]
+        .replaceAll("&amp;", "&")
+        .replaceAll("&lt;", "<")
+        .replaceAll("&gt;", ">");
+      try {
+        return decodeURIComponent(value);
+      } catch {
+        return value;
+      }
+    });
   const sitemapLocations = locations(sitemapIndex);
   const wordSitemapLocations = new Set();
   let sitemapUrlCount = 0;

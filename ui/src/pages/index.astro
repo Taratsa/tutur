@@ -26,8 +26,8 @@ const collections = [
     route: "/huruf/a/",
     icon: "book",
     title: "Kamus Utama",
-    text: "Definisi kata dari KBBI Edisi IV.",
-    count: stats.dictionaryRecords,
+    text: "Definisi kata dari KBBI Edisi IV & VI.",
+    count: stats.uniqueHeadwords,
   },
   {
     route: "/search/?type=baku",
@@ -58,6 +58,13 @@ const collections = [
     count: stats.slangRecords,
   },
   {
+    route: "/rima/",
+    icon: "music",
+    title: "Pencarian Rima",
+    text: "Kata berima akhir dan berima awal.",
+    count: stats.rhymeKeys,
+  },
+  {
     route: "/populer/",
     icon: "trend",
     title: "Kata Populer",
@@ -71,10 +78,14 @@ const collections = [
   title="Tutur — Kamus Bahasa Indonesia"
   description="Cari arti, kata baku, sinonim, dan antonim Bahasa Indonesia. Bukan layanan resmi KBBI."
   canonicalPath="/"
+  image="/og-home.png"
+  imageAlt="Ilustrasi hitam putih Taratsa"
+  imageWidth={1920}
+  imageHeight={1080}
 >
   <section class="home-hero">
     <div class="home-copy">
-      <p class="eyebrow"><span></span>Dataset terbuka · Bukan layanan resmi</p>
+      <p class="eyebrow"><span></span>Kamus Besar Bahasa Indonesia (KBBI)</p>
       <h1>Cari arti kata.</h1>
       <p>Cari arti, kata baku, sinonim, dan antonim Bahasa Indonesia.</p>
     </div>
