@@ -1,0 +1,24 @@
+{
+  "name": "Tutur — Kamus Bahasa Indonesia",
+  "short_name": "Tutur",
+  "description": "Cari arti, kata baku, sinonim, dan antonim Bahasa Indonesia.",
+  "lang": "id",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

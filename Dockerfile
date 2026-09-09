@@ -42,9 +42,11 @@ RUN bun run data:prepare \
 ARG SITE_URL=http://localhost:4321
 ARG BASE_PATH=/
 ARG PUBLIC_SEARCH_API_URL=http://localhost:3001
+ARG PUBLIC_TWITTER_SITE=@taratsa
 ENV SITE_URL=$SITE_URL \
     BASE_PATH=$BASE_PATH \
     PUBLIC_SEARCH_API_URL=$PUBLIC_SEARCH_API_URL \
+    PUBLIC_TWITTER_SITE=$PUBLIC_TWITTER_SITE \
     UI_DATABASE_PATH=../api/data/search.sqlite
 RUN bun run --cwd ui astro:build
 

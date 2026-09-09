@@ -19,7 +19,27 @@ const {
 } = Astro.props;
 const canonicalUrl = absoluteRoute(canonicalPath);
 const imageUrl = image ? (/^https?:\/\//u.test(image) ? image : absoluteRoute(image)) : null;
-const serializedJsonLd = jsonLd ? JSON.stringify(jsonLd).replaceAll("<", "\\u003c") : null;
+const homeUrl = absoluteRoute("/");
+const twitterSite = import.meta.env.PUBLIC_TWITTER_SITE || "@taratsa";
+const structuredData =
+  jsonLd ??
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": canonicalUrl,
+    url: canonicalUrl,
+    name: title,
+    description,
+    inLanguage: "id-ID",
+    isPartOf: {
+      "@type": "WebSite",
+      "@id": `${homeUrl}#website`,
+      url: homeUrl,
+      name: "Tutur",
+      inLanguage: "id-ID",
+    },
+  };
+const serializedJsonLd = JSON.stringify(structuredData).replaceAll("<", "\\u003c");
 ---
 
 <!doctype html>
@@ -30,9 +50,15 @@ const serializedJsonLd = jsonLd ? JSON.stringify(jsonLd).replaceAll("<", "\\u003
     <meta name="description" content={description} />
     <meta name="robots" content={robots} />
     <meta name="theme-color" content="#111111" />
-    <link rel="icon" type="image/png" href={sitePath("/favicon.png")} />
+    <link rel="icon" type="image/svg+xml" href={sitePath("/favicon.svg")} />
+    <link rel="icon" type="image/png" sizes="32x32" href={sitePath("/favicon-32x32.png")} />
+    <link rel="icon" type="image/png" sizes="120x120" href={sitePath("/favicon.png")} />
+    <link rel="apple-touch-icon" sizes="180x180" href={sitePath("/apple-touch-icon.png")} />
+    <link rel="manifest" href={sitePath("/site.webmanifest")} />
     <link rel="canonical" href={canonicalUrl} />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Tutur" />
+    <meta property="og:locale" content="id_ID" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
@@ -42,14 +68,13 @@ const serializedJsonLd = jsonLd ? JSON.stringify(jsonLd).replaceAll("<", "\\u003
     {imageUrl && <meta property="og:image:height" content={imageHeight} />}
     {imageUrl && <meta property="og:image:alt" content={imageAlt} />}
     <meta name="twitter:card" content={imageUrl ? "summary_large_image" : "summary"} />
+    <meta name="twitter:site" content={twitterSite} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
     {imageUrl && <meta name="twitter:image" content={imageUrl} />}
     {imageUrl && <meta name="twitter:image:alt" content={imageAlt} />}
     <title>{title}</title>
-    {
-      serializedJsonLd && (
-        <script is:inline type="application/ld+json" set:html={serializedJsonLd} />
-      )
-    }
+    <script is:inline type="application/ld+json" set:html={serializedJsonLd} />
     {
       import.meta.env.PROD && (
         <>

@@ -100,15 +100,26 @@ try {
     !homeHtml.includes(`<time datetime="${jakartaDate}">`) ||
     !homeHtml.includes("home-word-of-day--mobile") ||
     !/<meta property="og:image" content="https?:\/\/[^"]+\/og-home\.png">/u.test(homeHtml) ||
-    !homeHtml.includes('<meta property="og:image:width" content="1920">') ||
-    !homeHtml.includes('<meta property="og:image:height" content="1080">') ||
+    !homeHtml.includes('<meta property="og:image:width" content="1200">') ||
+    !homeHtml.includes('<meta property="og:image:height" content="630">') ||
+    !homeHtml.includes('<meta property="og:site_name" content="Tutur">') ||
+    !homeHtml.includes('<meta property="og:locale" content="id_ID">') ||
+    !/<meta name="twitter:site" content="[^"]+">/u.test(homeHtml) ||
+    !homeHtml.includes('<link rel="apple-touch-icon" sizes="180x180"') ||
+    !homeHtml.includes('<link rel="manifest"') ||
+    !homeHtml.includes('type="application/ld+json"') ||
     !dailyWordSlug ||
     !dbSlugs.has(dailyWordSlug)
   )
     throw new Error("SSR home page is missing today's linked word");
   const homeImage = await get("/og-home.png");
-  if (homeImage.status !== 200 || homeImage.headers.get("content-type") !== "image/png") {
-    throw new Error("Homepage social image is not served locally as PNG");
+  const homeImageBytes = (await homeImage.arrayBuffer()).byteLength;
+  if (
+    homeImage.status !== 200 ||
+    homeImage.headers.get("content-type") !== "image/png" ||
+    homeImageBytes >= 500_000
+  ) {
+    throw new Error("Homepage social image is not served locally as an optimized PNG");
   }
 
   const enriched = await get("/kata/abu/");

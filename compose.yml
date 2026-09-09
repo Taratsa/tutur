@@ -8,6 +8,7 @@ services:
         SITE_URL: ${SITE_URL:-https://tutur.taratsa.id}
         BASE_PATH: ${BASE_PATH:-/}
         PUBLIC_SEARCH_API_URL: ${PUBLIC_SEARCH_API_URL:-https://tutur.taratsa.id/api/search}
+        PUBLIC_TWITTER_SITE: ${PUBLIC_TWITTER_SITE:-@taratsa}
     image: tutur:local
     ports:
       - "127.0.0.1:4321:4321"
