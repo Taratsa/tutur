@@ -1,0 +1,27 @@
+---
+import { getEntry, render } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PageHero from "../components/PageHero.astro";
+
+export const prerender = true;
+
+const entry = await getEntry("docs", "ejaan");
+const { Content } = await render(entry);
+const { title, eyebrow, description } = entry.data;
+// Frontmatter may carry markdown emphasis; meta tags and the hero need plain text.
+const plainDescription = description.replaceAll("*", "");
+---
+
+<BaseLayout
+  title={`Ejaan (EYD V) | Tutur`}
+  description={plainDescription}
+  canonicalPath="/ejaan/"
+  currentPath="/ejaan/"
+>
+  <PageHero eyebrow={eyebrow} title={`${title}.`} description={plainDescription} />
+  <section class="section-wrap eyd-page">
+    <article class="eyd-doc">
+      <Content />
+    </article>
+  </section>
+</BaseLayout>

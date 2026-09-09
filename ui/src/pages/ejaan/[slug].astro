@@ -1,0 +1,88 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PageHero from "../../components/PageHero.astro";
+import { sitePath } from "../../lib/site.js";
+
+export const prerender = true;
+
+const entries = await getCollection(
+  "docs",
+  ({ id, data }) => id.startsWith("ejaan/") && id !== "ejaan" && Boolean(data.order !== undefined),
+);
+const topics = entries.sort((a, b) => (a.data.order ?? 0) - (b.data.order ?? 0));
+
+export async function getStaticPaths() {
+  const entries = await getCollection(
+    "docs",
+    ({ id, data }) =>
+      id.startsWith("ejaan/") && id !== "ejaan" && Boolean(data.order !== undefined),
+  );
+  return entries.map((entry) => ({
+    params: { slug: entry.id.slice("ejaan/".length) },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const { title, section, sectionLabel } = entry.data;
+
+const index = topics.findIndex((topic) => topic.id === entry.id);
+const previous = index > 0 ? topics[index - 1] : null;
+const next = index >= 0 && index < topics.length - 1 ? topics[index + 1] : null;
+const plainTitle = title.replaceAll("*", "");
+const slug = (topic: (typeof topics)[number]) => topic.id.slice("ejaan/".length);
+---
+
+<BaseLayout
+  title={`${plainTitle} | Ejaan | Tutur`}
+  description={`Kaidah ${plainTitle} menurut Ejaan Bahasa Indonesia yang Disempurnakan (EYD) Edisi Kelima.`}
+  canonicalPath={`/ejaan/${slug(entry)}/`}
+  currentPath={`/ejaan/${slug(entry)}/`}
+>
+  <PageHero eyebrow={sectionLabel ?? "EYD V"} title={plainTitle} description="" />
+  <section class="section-wrap eyd-page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <ol>
+        <li><a href={sitePath("/ejaan/")}>Ejaan</a></li>
+        <li>{sectionLabel}</li>
+      </ol>
+    </nav>
+    <article class="eyd-doc">
+      <Content />
+    </article>
+    <nav class="word-neighbors eyd-neighbors" aria-label="Navigasi halaman">
+      {
+        previous ? (
+          <a href={sitePath(`/ejaan/${slug(previous)}/`)}>
+            <small>Sebelumnya</small>
+            <strong>{previous.data.title.replaceAll("*", "")}</strong>
+          </a>
+        ) : (
+          <a href={sitePath("/ejaan/")}>
+            <small>Sebelumnya</small>
+            <strong>Daftar isi Ejaan</strong>
+          </a>
+        )
+      }
+      {
+        next ? (
+          <a href={sitePath(`/ejaan/${slug(next)}/`)}>
+            <small>Selanjutnya</small>
+            <strong>{next.data.title.replaceAll("*", "")}</strong>
+          </a>
+        ) : (
+          <a href={sitePath("/ejaan/")}>
+            <small>Selanjutnya</small>
+            <strong>Daftar isi Ejaan</strong>
+          </a>
+        )
+      }
+    </nav>
+    <p class="eyd-source">
+      Sumber: EYD V — Badan Pengembangan dan Pembinaan Bahasa, Kementerian Pendidikan Dasar dan
+      Menengah.
+    </p>
+  </section>
+</BaseLayout>
