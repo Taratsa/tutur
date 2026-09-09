@@ -58,6 +58,9 @@ export function createApp({
   const app = new Hono();
   const { searchPrepared } = createSearcher(db);
   const origins = allowedOrigins(env.CORS_ORIGIN);
+  // API bersifat publik: tanpa CORS_ORIGIN (atau CORS_ORIGIN=*) semua origin
+  // diizinkan mengakses endpoint baca-saja ini.
+  const publicAccess = origins.has("*") || origins.size === 0;
   const trustProxy = env.TRUST_PROXY === "1";
   const windowMs = 60_000;
   const rateLimit = Math.max(1, Number.parseInt(env.RATE_LIMIT_PER_MINUTE ?? "120", 10) || 120);
@@ -94,7 +97,10 @@ export function createApp({
   }
 
   app.use("*", compress());
-  app.use("*", cors({ origin: (origin) => (origins.has(origin) ? origin : "") }));
+  app.use(
+    "*",
+    cors({ origin: publicAccess ? "*" : (origin) => (origins.has(origin) ? origin : "") }),
+  );
 
   app.get("/health", (c) => c.json({ status: "ok" }, 200, { "Cache-Control": "no-store" }));
   app.get("/api/search", (c: Context) => {

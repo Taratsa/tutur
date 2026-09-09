@@ -30,7 +30,11 @@ services:
       - "127.0.0.1:3001:3001"
     environment:
       PORT: 3001
-      CORS_ORIGIN: https://tutur.taratsa.id
+      # API publik: semua origin boleh membaca (bisa dibatasi dgn daftar origin).
+      CORS_ORIGIN: "*"
+      # Di belakang Caddy: batas 120 req/menit diterapkan per IP klien
+      # (X-Forwarded-For yang ditulis ulang oleh Caddy), bukan satu bucket global.
+      TRUST_PROXY: "1"
     healthcheck:
       test:
         [

@@ -1,0 +1,196 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PageHero from "../components/PageHero.astro";
+
+export const prerender = true;
+
+const searchTypes = [
+  { id: "all", label: "Semua koleksi" },
+  { id: "dictionary", label: "Definisi kamus (KBBI IV & VI)" },
+  { id: "baku", label: "Baku & nonbaku" },
+  { id: "sinonim", label: "Sinonim" },
+  { id: "antonim", label: "Antonim" },
+  { id: "slang", label: "Bentuk slang" },
+  { id: "rima", label: "Rima akhir" },
+  { id: "rima-awal", label: "Rima awal (aliterasi)" },
+];
+
+const params = [
+  {
+    name: "q",
+    required: true,
+    description:
+      "Kata yang dicari, 2-80 karakter. Diproses sebagai teks yang dinormalisasi (huruf kecil, spasi dirapikan).",
+  },
+  {
+    name: "type",
+    required: false,
+    description: `Jenis pencarian, salah satu dari: ${searchTypes.map((item) => item.id).join(", ")}. Default: all.`,
+  },
+  {
+    name: "limit",
+    required: false,
+    description: "Jumlah hasil maksimal, angka 1-50. Default: 20.",
+  },
+];
+
+const responseExample = `{
+  "query": "bahasa",
+  "results": [
+    {
+      "type": "dictionary",
+      "word": "bahasa",
+      "slug": "bahasa",
+      "url": "/kata/bahasa/",
+      "summary": "1ba·ha·sa n 1 Ling sistem lambang bunyi yg arbitrer, ..."
+    },
+    {
+      "type": "rima",
+      "word": "berbahasa",
+      "slug": "berbahasa",
+      "url": "/kata/berbahasa/",
+      "summary": "ber.ba.ha.sa Verba (kata kerja) (1) menggunakan bahasa; ..."
+    }
+  ]
+}`;
+
+const curlExample = `curl "https://tutur.taratsa.id/api/search?q=bahasa&type=rima&limit=10"`;
+
+const fetchExample = `const response = await fetch(
+  "https://tutur.taratsa.id/api/search?q=bahasa&type=rima&limit=10",
+);
+const { results } = await response.json();
+console.log(results.map((item) => item.word));`;
+
+const errors = [
+  {
+    status: "400",
+    meaning: "Parameter tidak valid (q terlalu pendek/panjang, type atau limit salah).",
+  },
+  { status: "404", meaning: "Endpoint tidak ditemukan." },
+  {
+    status: "429",
+    meaning: "Melebihi batas 120 permintaan/menit per IP. Ikuti header Retry-After.",
+  },
+];
+---
+
+<BaseLayout
+  title="Dokumentasi API | Tutur"
+  description="API pencarian KBBI gratis dan terbuka: cari definisi, sinonim, antonim, bentuk slang, hingga kata berima."
+  canonicalPath="/dokumentasi-api/"
+  currentPath="/dokumentasi-api/"
+>
+  <PageHero
+    eyebrow="API Terbuka · Gratis · Tanpa Kunci"
+    title="Dokumentasi API."
+    description="Semua data pencarian Tutur dapat diakses siapa saja lewat HTTP GET. Tidak perlu autentikasi."
+  />
+  <section class="section-wrap api-docs">
+    <section aria-labelledby="api-start-title">
+      <div class="word-section-heading">
+        <p class="eyebrow"><span></span>Memulai</p>
+        <h2 id="api-start-title">Endpoint</h2>
+      </div>
+      <p>
+        Basis URL produksi mengikuti domain situs, sehingga API dapat dipanggil langsung dari domain
+        mana pun (CORS terbuka). Untuk pengembangan lokal, server API berjalan terpisah pada <code
+          >http://localhost:3001</code
+        >.
+      </p>
+      <ul class="api-endpoints">
+        <li>
+          <code>GET /health</code>
+          <p>Cek kesehatan layanan. Selalu mengembalikan <code>{'{"status":"ok"}'}</code>.</p>
+        </li>
+        <li>
+          <code>GET /api/search</code>
+          <p>Pencarian lintas koleksi: definisi, relasi kata, bentuk slang, dan rima.</p>
+        </li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="api-params-title">
+      <div class="word-section-heading">
+        <p class="eyebrow"><span></span>GET /api/search</p>
+        <h2 id="api-params-title">Parameter</h2>
+      </div>
+      <ul class="api-endpoints">
+        {
+          params.map((param) => (
+            <li>
+              <code>
+                {param.name}
+                {param.required ? "" : " (opsional)"}
+              </code>
+              <p>{param.description}</p>
+            </li>
+          ))
+        }
+      </ul>
+      <p>Nilai yang mungkin untuk <code>type</code>:</p>
+      <ul class="api-types">
+        {
+          searchTypes.map((item) => (
+            <li>
+              <code>{item.id}</code> <small>{item.label}</small>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section aria-labelledby="api-response-title">
+      <div class="word-section-heading">
+        <p class="eyebrow"><span></span>Format</p>
+        <h2 id="api-response-title">Contoh respons</h2>
+      </div>
+      <pre>{responseExample}</pre>
+      <p>
+        Setiap hasil berisi <code>type</code>, <code>word</code>, <code>slug</code>,
+        <code>url</code> (jalur halaman kata di situs ini), dan <code>summary</code>. Hasil tipe
+        <code>baku</code>, <code>sinonim</code>, dan <code>antonim</code> juga memuat
+        <code>counterpart</code>.
+      </p>
+    </section>
+
+    <section aria-labelledby="api-examples-title">
+      <div class="word-section-heading">
+        <p class="eyebrow"><span></span>Cara pakai</p>
+        <h2 id="api-examples-title">Contoh permintaan</h2>
+      </div>
+      <p>Mencari kata berima untuk “bahasa” dengan curl:</p>
+      <pre>{curlExample}</pre>
+      <p>Contoh yang sama dengan JavaScript:</p>
+      <pre>{fetchExample}</pre>
+    </section>
+
+    <section aria-labelledby="api-limits-title">
+      <div class="word-section-heading">
+        <p class="eyebrow"><span></span>Batas &amp; etika</p>
+        <h2 id="api-limits-title">Rate limit, cache, dan galat</h2>
+      </div>
+      <p>
+        Batas pemakaian adalah <strong>120 permintaan per menit per IP</strong>; respons
+        <code>429</code> menyertakan header <code>Retry-After</code>. Respons sukses dapat di-cache
+        (<code>Cache-Control: public, max-age=60, stale-while-revalidate=300</code>) dan menyertakan
+        <code>ETag</code> — kirim kembali <code>If-None-Match</code> untuk mendapat respons
+        <code>304</code> yang hemat kuota.
+      </p>
+      <ul class="api-endpoints">
+        {
+          errors.map((item) => (
+            <li>
+              <code>{item.status}</code>
+              <p>{item.meaning}</p>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="api-note">
+        Data API berasal dari KBBI dan sumber terbuka lain (lihat halaman Sumber data). Layanan ini
+        disediakan apa adanya; mohon tidak dipakai untuk membebani layanan resmi KBBI.
+      </p>
+    </section>
+  </section>
+</BaseLayout>
