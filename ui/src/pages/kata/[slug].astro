@@ -233,620 +233,618 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
   imageAlt={entry ? `Arti kata ${entry.word}` : undefined}
   jsonLd={jsonLd}
 >
-  {
-    entry ? (
-      <article class="word-page section-wrap">
-        <nav class="breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <>
-              <li>
-                <a href={sitePath("/")}>Beranda</a>
-              </li>
-              <li>
-                <a href={sitePath(`/huruf/${entry.letter}/`)}>Daftar kata</a>
-              </li>
-              <li aria-current="page">{entry.word}</li>
-            </>
-          </ol>
-        </nav>
-        <header class="word-heading">
+  {entry ? (
+    <article class="word-page section-wrap">
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol>
           <>
-            <p class="eyebrow">
-              <span />
-              Entri kamus
-            </p>
-            <h1>{entry.word}</h1>
-            {(syllabifications.length > 0 || pronunciations.length > 0) && (
-              <dl class="word-readings">
-                {syllabifications.length > 0 && (
-                  <div>
-                    <dt>Pemenggalan</dt>
-                    <dd>
-                      {syllabifications.map((item: ReadingValue) => (
-                        <span>
-                          <b>{item.value}</b>
-                          <small>{item.sources.join(" + ")}</small>
-                        </span>
-                      ))}
-                    </dd>
-                  </div>
-                )}
-                {pronunciations.length > 0 && (
-                  <div>
-                    <dt>Pelafalan</dt>
-                    <dd>
-                      {pronunciations.map((item: ReadingValue) => (
-                        <span>
-                          <b>{item.value}</b>
-                          <small>{item.sources.join(" + ")}</small>
-                        </span>
-                      ))}
-                    </dd>
-                  </div>
-                )}
-              </dl>
+            <li>
+              <a href={sitePath("/")}>Beranda</a>
+            </li>
+            <li>
+              <a href={sitePath(`/huruf/${entry.letter}/`)}>Daftar kata</a>
+            </li>
+            <li aria-current="page">{entry.word}</li>
+          </>
+        </ol>
+      </nav>
+      <header class="word-heading">
+        <>
+          <p class="eyebrow">
+            <span />
+            Entri kamus
+          </p>
+          <h1>{entry.word}</h1>
+          {(syllabifications.length > 0 || pronunciations.length > 0) && (
+            <dl class="word-readings">
+              {syllabifications.length > 0 && (
+                <div>
+                  <dt>Pemenggalan</dt>
+                  <dd>
+                    {syllabifications.map((item: ReadingValue) => (
+                      <span>
+                        <b>{item.value}</b>
+                        <small>{item.sources.join(" + ")}</small>
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+              )}
+              {pronunciations.length > 0 && (
+                <div>
+                  <dt>Pelafalan</dt>
+                  <dd>
+                    {pronunciations.map((item: ReadingValue) => (
+                      <span>
+                        <b>{item.value}</b>
+                        <small>{item.sources.join(" + ")}</small>
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          )}
+          <p class="word-normalized">
+            Bentuk terindeks: <span>{entry.normalizedWord}</span>
+          </p>
+          {(entry.frequency != null ||
+            entry.rootWord ||
+            isV6Only ||
+            (extras?.variants?.length ?? 0) > 0) && (
+            <div class="word-meta">
+              {entry.frequency != null && (
+                <span class="meta-chip">
+                  Frekuensi korpus: <b>{formatNumber(entry.frequency)}</b>
+                </span>
+              )}
+              {entry.rootWord && (
+                <a class="meta-chip is-link" href={sitePath(`/kata/${entry.rootSlug}/`)}>
+                  Akar kata: <b>{entry.rootWord}</b>
+                </a>
+              )}
+              {isV6Only && <span class="meta-chip">Entri KBBI Edisi VI</span>}
+              {(extras?.variants?.length ?? 0) > 0 && (
+                <span class="meta-chip">
+                  Varian: <b>{extras!.variants.join(", ")}</b>
+                </span>
+              )}
+            </div>
+          )}
+        </>
+      </header>
+      <div class="word-content-grid">
+        <section class="word-definitions" aria-labelledby="definitions-title">
+          <>
+            <div class="word-section-heading">
+              <>
+                <p class="eyebrow">
+                  <span />
+                  {definitions.length > 0 ? "Definisi" : "Definisi · KBBI Edisi VI"}
+                </p>
+                <h2 id="definitions-title">Arti</h2>
+              </>
+            </div>
+            <ol class="definitions">
+              {(definitions.length > 0 ? definitions : v6Definitions).map(
+                (definition: Definition) => (
+                  <li>
+                    <span>{definition.type == null ? "Makna" : `Tipe ${definition.type}`}</span>
+                    <div set:html={definition.html} />
+                  </li>
+                ),
+              )}
+            </ol>
+          </>
+        </section>
+        <aside class="word-aside">
+          <>
+            {extras?.etymology && (
+              <div class="source-note">
+                <>
+                  <strong>Etimologi KBBI VI</strong>
+                  <p>{extras.etymology}</p>
+                </>
+              </div>
             )}
-            <p class="word-normalized">
-              Bentuk terindeks: <span>{entry.normalizedWord}</span>
-            </p>
-            {(entry.frequency != null ||
-              entry.rootWord ||
-              isV6Only ||
-              (extras?.variants?.length ?? 0) > 0) && (
-              <div class="word-meta">
-                {entry.frequency != null && (
-                  <span class="meta-chip">
-                    Frekuensi korpus: <b>{formatNumber(entry.frequency)}</b>
-                  </span>
-                )}
-                {entry.rootWord && (
-                  <a class="meta-chip is-link" href={sitePath(`/kata/${entry.rootSlug}/`)}>
-                    Akar kata: <b>{entry.rootWord}</b>
-                  </a>
-                )}
-                {isV6Only && <span class="meta-chip">Entri KBBI Edisi VI</span>}
-                {(extras?.variants?.length ?? 0) > 0 && (
-                  <span class="meta-chip">
-                    Varian: <b>{extras!.variants.join(", ")}</b>
-                  </span>
-                )}
+            {graph && (
+              <div class="source-note">
+                <>
+                  <strong>Korpus</strong>
+                  <p>
+                    Muncul {graph.sentences}× dalam {formatNumber(graph.corpusSentences)} kalimat
+                    korpus Leipzig ind_mixed_2013.
+                  </p>
+                </>
               </div>
             )}
           </>
-        </header>
-        <div class="word-content-grid">
-          <section class="word-definitions" aria-labelledby="definitions-title">
-            <>
-              <div class="word-section-heading">
-                <>
-                  <p class="eyebrow">
-                    <span />
-                    {definitions.length > 0 ? "Definisi" : "Definisi · KBBI Edisi VI"}
-                  </p>
-                  <h2 id="definitions-title">Arti</h2>
-                </>
-              </div>
-              <ol class="definitions">
-                {(definitions.length > 0 ? definitions : v6Definitions).map(
-                  (definition: Definition) => (
-                    <li>
-                      <span>{definition.type == null ? "Makna" : `Tipe ${definition.type}`}</span>
-                      <div set:html={definition.html} />
-                    </li>
-                  ),
-                )}
-              </ol>
-            </>
-          </section>
-          <aside class="word-aside">
-            <>
-              {extras?.etymology && (
-                <div class="source-note">
-                  <>
-                    <strong>Etimologi KBBI VI</strong>
-                    <p>{extras.etymology}</p>
-                  </>
-                </div>
-              )}
-              {graph && (
-                <div class="source-note">
-                  <>
-                    <strong>Korpus</strong>
-                    <p>
-                      Muncul {graph.sentences}× dalam {formatNumber(graph.corpusSentences)} kalimat
-                      korpus Leipzig ind_mixed_2013.
-                    </p>
-                  </>
-                </div>
-              )}
-            </>
-          </aside>
-        </div>
-        {v6Definitions.length > 0 && definitions.length > 0 && (
-          <section class="word-extras" aria-labelledby="v6-definitions-title">
-            <div class="word-section-heading">
-              <p class="eyebrow">
-                <span />
-                KBBI Edisi VI
-              </p>
-              <h2 id="v6-definitions-title">Arti versi VI</h2>
-            </div>
-            <p class="etymology-note">
-              Definisi berikut berasal dari ekstraksi aplikasi resmi KBBI VI yang dipublikasikan
-              <a href="https://github.com/Definisi/kbbi" target="_blank" rel="noreferrer">
-                Definisi/kbbi
-              </a>
-              ; dipakai sebagai pembanding, bukan pengganti KBBI IV.
+        </aside>
+      </div>
+      {v6Definitions.length > 0 && definitions.length > 0 && (
+        <section class="word-extras" aria-labelledby="v6-definitions-title">
+          <div class="word-section-heading">
+            <p class="eyebrow">
+              <span />
+              KBBI Edisi VI
             </p>
-            <ol class="definitions">
-              {v6Definitions.map((definition: Definition) => (
-                <li>
-                  <span>Makna</span>
-                  <div set:html={definition.html} />
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
-        {etymologyRelations.length > 0 && (
-          <section class="word-extras" aria-labelledby="etymology-title">
-            <div class="word-section-heading">
-              <p class="eyebrow">
-                <span />
-                Asal-usul kata
-              </p>
-              <h2 id="etymology-title">Etimologi</h2>
-            </div>
-            <p class="etymology-note">
-              Relasi ini berasal dari{" "}
-              <a
-                href="https://github.com/ManaSiWibi/KBBI-SQL-database/tree/main/etymology-db"
-                target="_blank"
-                rel="noreferrer"
-              >
-                etymology-db
-              </a>{" "}
-              dan diparsing dari Wiktionary; hasilnya belum divalidasi secara sistematis.
+            <h2 id="v6-definitions-title">Arti versi VI</h2>
+          </div>
+          <p class="etymology-note">
+            Definisi berikut berasal dari ekstraksi aplikasi resmi KBBI VI yang dipublikasikan
+            <a href="https://github.com/Definisi/kbbi" target="_blank" rel="noreferrer">
+              Definisi/kbbi
+            </a>
+            ; dipakai sebagai pembanding, bukan pengganti KBBI IV.
+          </p>
+          <ol class="definitions">
+            {v6Definitions.map((definition: Definition) => (
+              <li>
+                <span>Makna</span>
+                <div set:html={definition.html} />
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      {etymologyRelations.length > 0 && (
+        <section class="word-extras" aria-labelledby="etymology-title">
+          <div class="word-section-heading">
+            <p class="eyebrow">
+              <span />
+              Asal-usul kata
             </p>
-            <ul class="example-list etymology-list">
-              {etymologyRelations.map((relation: EtymologyRelation) => (
-                <li>
-                  <span class="example-kind">{etymologyLabel(relation.relationType)}</span>
+            <h2 id="etymology-title">Etimologi</h2>
+          </div>
+          <p class="etymology-note">
+            Relasi ini berasal dari{" "}
+            <a
+              href="https://github.com/ManaSiWibi/KBBI-SQL-database/tree/main/etymology-db"
+              target="_blank"
+              rel="noreferrer"
+            >
+              etymology-db
+            </a>{" "}
+            dan diparsing dari Wiktionary; hasilnya belum divalidasi secara sistematis.
+          </p>
+          <ul class="example-list etymology-list">
+            {etymologyRelations.map((relation: EtymologyRelation) => (
+              <li>
+                <span class="example-kind">{etymologyLabel(relation.relationType)}</span>
+                <p>
+                  {relation.relatedTerm ? (
+                    <>
+                      {relation.relatedLang && <span>{relation.relatedLang}: </span>}
+                      <em>{relation.relatedTerm}</em>
+                    </>
+                  ) : (
+                    "Tidak ada kata terkait yang dicatat."
+                  )}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {kaikkiEntries.length > 0 && (
+        <section class="word-extras" aria-labelledby="kaikki-title">
+          <div class="word-section-heading">
+            <p class="eyebrow">
+              <span />
+              Kaikki · Wiktionary
+            </p>
+            <h2 id="kaikki-title">Data leksikal</h2>
+          </div>
+          <p class="etymology-note">
+            Data tambahan ini diekstrak oleh Wiktextract dan disediakan melalui{" "}
+            <a
+              href="https://kaikki.org/dictionary/Indonesian/index.html"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Kaikki
+            </a>
+            ; bukan definisi resmi KBBI. Teks sumber mengikuti{" "}
+            <a
+              href="https://en.wiktionary.org/wiki/Wiktionary:Copyrights"
+              target="_blank"
+              rel="noreferrer"
+            >
+              ketentuan lisensi Wiktionary
+            </a>
+            .
+          </p>
+          <div class="kaikki-list">
+            {kaikkiEntries.map((item: KaikkiEntry) => (
+              <article class="kaikki-entry">
+                <header class="kaikki-entry-header">
+                  <strong>{item.partOfSpeech}</strong>
+                </header>
+                {item.etymology && (
                   <p>
-                    {relation.relatedTerm ? (
-                      <>
-                        {relation.relatedLang && <span>{relation.relatedLang}: </span>}
-                        <em>{relation.relatedTerm}</em>
-                      </>
-                    ) : (
-                      "Tidak ada kata terkait yang dicatat."
-                    )}
+                    <b>Etimologi:</b> {item.etymology}
                   </p>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-        {kaikkiEntries.length > 0 && (
-          <section class="word-extras" aria-labelledby="kaikki-title">
-            <div class="word-section-heading">
-              <p class="eyebrow">
-                <span />
-                Kaikki · Wiktionary
-              </p>
-              <h2 id="kaikki-title">Data leksikal</h2>
-            </div>
-            <p class="etymology-note">
-              Data tambahan ini diekstrak oleh Wiktextract dan disediakan melalui{" "}
-              <a
-                href="https://kaikki.org/dictionary/Indonesian/index.html"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Kaikki
-              </a>
-              ; bukan definisi resmi KBBI. Teks sumber mengikuti{" "}
-              <a
-                href="https://en.wiktionary.org/wiki/Wiktionary:Copyrights"
-                target="_blank"
-                rel="noreferrer"
-              >
-                ketentuan lisensi Wiktionary
-              </a>
-              .
+                )}
+                {item.forms.length > 0 && (
+                  <p>
+                    <b>Bentuk:</b>{" "}
+                    {item.forms.map((form: KaikkiForm, index: number) => (
+                      <span>
+                        {index > 0 && ", "}
+                        {form.text}
+                        {form.tags.length > 0 && <small> ({form.tags.join(", ")})</small>}
+                      </span>
+                    ))}
+                  </p>
+                )}
+                {item.synonyms.length > 0 && (
+                  <p>
+                    <b>Sinonim:</b> {item.synonyms.join(", ")}
+                  </p>
+                )}
+                {item.derived.length > 0 && (
+                  <p>
+                    <b>Turunan:</b> {item.derived.join(", ")}
+                  </p>
+                )}
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+      {graph && (
+        <section class="word-graph-section" aria-labelledby="graph-title">
+          <div class="word-section-heading">
+            <p class="eyebrow">
+              <span />
+              Korpus Leipzig · ind_mixed_2013
             </p>
-            <div class="kaikki-list">
-              {kaikkiEntries.map((item: KaikkiEntry) => (
-                <article class="kaikki-entry">
-                  <header class="kaikki-entry-header">
-                    <strong>{item.partOfSpeech}</strong>
-                  </header>
-                  {item.etymology && (
-                    <p>
-                      <b>Etimologi:</b> {item.etymology}
-                    </p>
-                  )}
-                  {item.forms.length > 0 && (
-                    <p>
-                      <b>Bentuk:</b>{" "}
-                      {item.forms.map((form: KaikkiForm, index: number) => (
-                        <span>
-                          {index > 0 && ", "}
-                          {form.text}
-                          {form.tags.length > 0 && <small> ({form.tags.join(", ")})</small>}
-                        </span>
-                      ))}
-                    </p>
-                  )}
-                  {item.synonyms.length > 0 && (
-                    <p>
-                      <b>Sinonim:</b> {item.synonyms.join(", ")}
-                    </p>
-                  )}
-                  {item.derived.length > 0 && (
-                    <p>
-                      <b>Turunan:</b> {item.derived.join(", ")}
-                    </p>
-                  )}
-                </article>
-              ))}
+            <h2 id="graph-title">Graf kata</h2>
+          </div>
+          <WordGraph
+            client:visible
+            word={graph.word}
+            anchorId={graph.anchorId}
+            nodes={graph.nodes}
+            edges={graph.edges}
+            slug={entry.slug}
+          />
+          <p class="word-graph-help">
+            Dari {graph.sentences} kalimat korpus (frekuensi {graph.freq}). Angka pada garis adalah
+            frekuensi kemunculan berpasangan. Seret node untuk menata; klik node bersambungan untuk
+            membuka halaman katanya.
+          </p>
+          <div class="word-graph-lists">
+            <div class="graph-cooc">
+              <h3>Kata dalam kalimat yang sama</h3>
+              <ol class="cooc-list">
+                {graph.nodes.map((node) => (
+                  <li>
+                    <span
+                      class="cooc-bar"
+                      style={`width:${Math.max(8, (node.sig / maxGraphSig) * 100)}%`}
+                    />
+                    <span class="cooc-count">{node.freq}×</span>
+                    {node.slug ? (
+                      <a href={sitePath(`/kata/${node.slug}/`)}>{node.word}</a>
+                    ) : (
+                      <span>{node.word}</span>
+                    )}
+                  </li>
+                ))}
+              </ol>
             </div>
-          </section>
-        )}
-        {graph && (
-          <section class="word-graph-section" aria-labelledby="graph-title">
-            <div class="word-section-heading">
-              <p class="eyebrow">
-                <span />
-                Korpus Leipzig · ind_mixed_2013
-              </p>
-              <h2 id="graph-title">Graf kata</h2>
-            </div>
-            <WordGraph
-              client:visible
-              word={graph.word}
-              anchorId={graph.anchorId}
-              nodes={graph.nodes}
-              edges={graph.edges}
-              slug={entry.slug}
-            />
-            <p class="word-graph-help">
-              Dari {graph.sentences} kalimat korpus (frekuensi {graph.freq}). Angka pada garis
-              adalah frekuensi kemunculan berpasangan. Seret node untuk menata; klik node
-              bersambungan untuk membuka halaman katanya.
-            </p>
-            <div class="word-graph-lists">
-              <div class="graph-cooc">
-                <h3>Kata dalam kalimat yang sama</h3>
-                <ol class="cooc-list">
-                  {graph.nodes.map((node) => (
+            <div class="graph-neighbours">
+              <h3>Kata tetangga</h3>
+              <div class="neighbour-group">
+                <h4>Sebelum</h4>
+                <ul class="neighbour-list">
+                  {graph.left.map((node) => (
                     <li>
-                      <span
-                        class="cooc-bar"
-                        style={`width:${Math.max(8, (node.sig / maxGraphSig) * 100)}%`}
-                      />
-                      <span class="cooc-count">{node.freq}×</span>
                       {node.slug ? (
                         <a href={sitePath(`/kata/${node.slug}/`)}>{node.word}</a>
                       ) : (
                         <span>{node.word}</span>
                       )}
+                      <small>{node.freq}×</small>
                     </li>
                   ))}
-                </ol>
+                  {graph.left.length === 0 && <li class="empty">—</li>}
+                </ul>
               </div>
-              <div class="graph-neighbours">
-                <h3>Kata tetangga</h3>
-                <div class="neighbour-group">
-                  <h4>Sebelum</h4>
-                  <ul class="neighbour-list">
-                    {graph.left.map((node) => (
-                      <li>
-                        {node.slug ? (
-                          <a href={sitePath(`/kata/${node.slug}/`)}>{node.word}</a>
-                        ) : (
-                          <span>{node.word}</span>
-                        )}
-                        <small>{node.freq}×</small>
-                      </li>
-                    ))}
-                    {graph.left.length === 0 && <li class="empty">—</li>}
-                  </ul>
-                </div>
-                <div class="neighbour-group">
-                  <h4>Sesudah</h4>
-                  <ul class="neighbour-list">
-                    {graph.right.map((node) => (
-                      <li>
-                        {node.slug ? (
-                          <a href={sitePath(`/kata/${node.slug}/`)}>{node.word}</a>
-                        ) : (
-                          <span>{node.word}</span>
-                        )}
-                        <small>{node.freq}×</small>
-                      </li>
-                    ))}
-                    {graph.right.length === 0 && <li class="empty">—</li>}
-                  </ul>
-                </div>
-              </div>
-            </div>
-            {graph.examples.length > 0 && (
-              <div class="corpus-examples">
-                <h3>Contoh dari korpus</h3>
-                <ol class="corpus-list">
-                  {graph.examples.map((example) => (
-                    <li set:html={exampleHtml(example)} />
+              <div class="neighbour-group">
+                <h4>Sesudah</h4>
+                <ul class="neighbour-list">
+                  {graph.right.map((node) => (
+                    <li>
+                      {node.slug ? (
+                        <a href={sitePath(`/kata/${node.slug}/`)}>{node.word}</a>
+                      ) : (
+                        <span>{node.word}</span>
+                      )}
+                      <small>{node.freq}×</small>
+                    </li>
                   ))}
-                </ol>
+                  {graph.right.length === 0 && <li class="empty">—</li>}
+                </ul>
               </div>
-            )}
-          </section>
-        )}
-        {extras?.examples && extras.examples.length > 0 && (
-          <section class="word-extras" aria-labelledby="examples-title">
-            <div class="word-section-heading">
-              <p class="eyebrow">
-                <span />
-                Konteks pemakaian
-              </p>
-              <h2 id="examples-title">Contoh penggunaan</h2>
             </div>
-            <ol class="example-list">
-              {extras.examples.map((item: ExtraItem) => (
-                <li>
-                  <p>{item.text}</p>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
-        {family.length > 0 && (
-          <section class="word-extras" aria-labelledby="family-title">
-            <div class="word-section-heading">
-              <p class="eyebrow">
-                <span />
-                Kata seakar
-              </p>
-              <h2 id="family-title">Keluarga kata</h2>
-            </div>
-            <ul class="chip-list">
-              {family.map((member: FamilyMember) => (
-                <li>
-                  {member.slug ? (
-                    <a href={sitePath(`/kata/${member.slug}/`)}>
-                      <strong>{member.word}</strong>
-                      <small>{formatNumber(member.frequency)}×</small>
-                    </a>
-                  ) : (
-                    <span>
-                      <strong>{member.word}</strong>
-                      <small>{formatNumber(member.frequency)}×</small>
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-        {(extras?.derivations?.length ?? 0) > 0 && (
-          <section class="word-extras" aria-labelledby="derivations-title">
-            <div class="word-section-heading">
-              <p class="eyebrow">
-                <span />
-                Bentukan
-              </p>
-              <h2 id="derivations-title">Turunan</h2>
-            </div>
-            <ul class="chip-list">
-              {extras!.derivations.map((item: ExtraItem) => (
-                <li>
-                  {item.slug ? (
-                    <a href={sitePath(`/kata/${item.slug}/`)}>
-                      <strong>{item.text}</strong>
-                    </a>
-                  ) : (
-                    <span>
-                      <strong>{item.text}</strong>
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-        {(extras?.compounds?.length ?? 0) > 0 && (
-          <section class="word-extras" aria-labelledby="compounds-title">
-            <div class="word-section-heading">
-              <p class="eyebrow">
-                <span />
-                Rakitan kata
-              </p>
-              <h2 id="compounds-title">Gabungan kata</h2>
-            </div>
-            <ul class="chip-list">
-              {extras!.compounds.map((item: ExtraItem) => (
-                <li>
-                  {item.slug ? (
-                    <a href={sitePath(`/kata/${item.slug}/`)}>
-                      <strong>{item.text}</strong>
-                    </a>
-                  ) : (
-                    <span>
-                      <strong>{item.text}</strong>
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-        {((extras?.proverbs?.length ?? 0) > 0 || (extras?.idioms?.length ?? 0) > 0) && (
-          <section class="word-extras" aria-labelledby="idioms-title">
-            <div class="word-section-heading">
-              <p class="eyebrow">
-                <span />
-                Ungkapan
-              </p>
-              <h2 id="idioms-title">Peribahasa dan kiasan</h2>
-            </div>
-            <ul class="example-list">
-              {(extras?.proverbs ?? []).map((item: ExtraItem) => (
-                <li>
-                  <span class="example-kind">Peribahasa</span>
-                  <p>{item.text}</p>
-                </li>
-              ))}
-              {(extras?.idioms ?? []).map((item: ExtraItem) => (
-                <li>
-                  <span class="example-kind">Kiasan</span>
-                  <p>{item.text}</p>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-        {slangForms.length > 0 && (
-          <section class="word-extras" aria-labelledby="slang-title">
-            <div class="word-section-heading">
-              <p class="eyebrow">
-                <span />
-                Bahasa sehari-hari
-              </p>
-              <h2 id="slang-title">Bentuk slang</h2>
-            </div>
-            <p class="slang-note">Dalam percakapan santai, kata ini sering ditulis:</p>
-            <ul class="chip-list">
-              {slangForms.map((form: SlangForm) => (
-                <li>
-                  <span class="slang-chip">
-                    <strong>{form.slang}</strong>
-                    {form.categories.length > 0 && <small>{form.categories.join(", ")}</small>}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {slangTargets.length > 0 && (
-              <p class="slang-note">
-                Kata ini juga dipakai sebagai bentuk santai dari{" "}
-                {slangTargets.map((target: SlangTarget, index: number) => (
-                  <>
-                    <a href={sitePath(`/kata/${target.slug}/`)}>
-                      <strong>{target.word}</strong>
-                    </a>
-                    {index < slangTargets.length - 1 && ", "}
-                  </>
+          </div>
+          {graph.examples.length > 0 && (
+            <div class="corpus-examples">
+              <h3>Contoh dari korpus</h3>
+              <ol class="corpus-list">
+                {graph.examples.map((example) => (
+                  <li set:html={exampleHtml(example)} />
                 ))}
-                .
-              </p>
-            )}
-          </section>
-        )}
-        {rhymes && (rhymes.akhir.words.length > 0 || rhymes.awal.words.length > 0) && (
-          <section class="word-extras" aria-labelledby="rhyme-title">
-            <div class="word-section-heading">
-              <p class="eyebrow">
-                <span />
-                Bunyi yang serupa
-              </p>
-              <h2 id="rhyme-title">Kata berima</h2>
+              </ol>
             </div>
-            {rhymes.akhir.words.length > 0 && (
-              <>
-                <p class="slang-note">
-                  Rima akhir{" "}
-                  <a href={sitePath(rhymePath("akhir", rhymes.akhir.key))}>
-                    <strong>{rhymeDisplay(rhymes.akhir.key, "akhir")}</strong>
-                  </a>{" "}
-                  — <a href={sitePath(rhymePath("akhir", rhymes.akhir.key))}>lihat semuanya</a>:
-                </p>
-                <ul class="chip-list">
-                  {rhymes.akhir.words.map((word: RhymeWord) => (
-                    <li>
-                      <a href={sitePath(`/kata/${word.slug}/`)}>
-                        <strong>{word.word}</strong>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-            {rhymes.awal.words.length > 0 && (
-              <>
-                <p class="slang-note">
-                  Rima awal{" "}
-                  <a href={sitePath(rhymePath("awal", rhymes.awal.key))}>
-                    <strong>{rhymeDisplay(rhymes.awal.key, "awal")}</strong>
-                  </a>{" "}
-                  — <a href={sitePath(rhymePath("awal", rhymes.awal.key))}>lihat semuanya</a>:
-                </p>
-                <ul class="chip-list">
-                  {rhymes.awal.words.map((word: RhymeWord) => (
-                    <li>
-                      <a href={sitePath(`/kata/${word.slug}/`)}>
-                        <strong>{word.word}</strong>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </section>
-        )}
-        {related.length > 0 && (
-          <section class="related-words" aria-labelledby="related-title">
-            <div class="word-section-heading">
-              <p class="eyebrow">
-                <span />
-                Relasi kata
-              </p>
-              <h2 id="related-title">Kata terkait</h2>
-            </div>
-            <ul>
-              {related.slice(0, 16).map((item: Related) => (
-                <li>
-                  <a href={sitePath(`/kata/${item.slug}/`)}>
-                    <strong>{item.word}</strong>
-                    <small>{item.kind}</small>
+          )}
+        </section>
+      )}
+      {extras?.examples && extras.examples.length > 0 && (
+        <section class="word-extras" aria-labelledby="examples-title">
+          <div class="word-section-heading">
+            <p class="eyebrow">
+              <span />
+              Konteks pemakaian
+            </p>
+            <h2 id="examples-title">Contoh penggunaan</h2>
+          </div>
+          <ol class="example-list">
+            {extras.examples.map((item: ExtraItem) => (
+              <li>
+                <p>{item.text}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      {family.length > 0 && (
+        <section class="word-extras" aria-labelledby="family-title">
+          <div class="word-section-heading">
+            <p class="eyebrow">
+              <span />
+              Kata seakar
+            </p>
+            <h2 id="family-title">Keluarga kata</h2>
+          </div>
+          <ul class="chip-list">
+            {family.map((member: FamilyMember) => (
+              <li>
+                {member.slug ? (
+                  <a href={sitePath(`/kata/${member.slug}/`)}>
+                    <strong>{member.word}</strong>
+                    <small>{formatNumber(member.frequency)}×</small>
                   </a>
-                </li>
+                ) : (
+                  <span>
+                    <strong>{member.word}</strong>
+                    <small>{formatNumber(member.frequency)}×</small>
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {(extras?.derivations?.length ?? 0) > 0 && (
+        <section class="word-extras" aria-labelledby="derivations-title">
+          <div class="word-section-heading">
+            <p class="eyebrow">
+              <span />
+              Bentukan
+            </p>
+            <h2 id="derivations-title">Turunan</h2>
+          </div>
+          <ul class="chip-list">
+            {extras!.derivations.map((item: ExtraItem) => (
+              <li>
+                {item.slug ? (
+                  <a href={sitePath(`/kata/${item.slug}/`)}>
+                    <strong>{item.text}</strong>
+                  </a>
+                ) : (
+                  <span>
+                    <strong>{item.text}</strong>
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {(extras?.compounds?.length ?? 0) > 0 && (
+        <section class="word-extras" aria-labelledby="compounds-title">
+          <div class="word-section-heading">
+            <p class="eyebrow">
+              <span />
+              Rakitan kata
+            </p>
+            <h2 id="compounds-title">Gabungan kata</h2>
+          </div>
+          <ul class="chip-list">
+            {extras!.compounds.map((item: ExtraItem) => (
+              <li>
+                {item.slug ? (
+                  <a href={sitePath(`/kata/${item.slug}/`)}>
+                    <strong>{item.text}</strong>
+                  </a>
+                ) : (
+                  <span>
+                    <strong>{item.text}</strong>
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {((extras?.proverbs?.length ?? 0) > 0 || (extras?.idioms?.length ?? 0) > 0) && (
+        <section class="word-extras" aria-labelledby="idioms-title">
+          <div class="word-section-heading">
+            <p class="eyebrow">
+              <span />
+              Ungkapan
+            </p>
+            <h2 id="idioms-title">Peribahasa dan kiasan</h2>
+          </div>
+          <ul class="example-list">
+            {(extras?.proverbs ?? []).map((item: ExtraItem) => (
+              <li>
+                <span class="example-kind">Peribahasa</span>
+                <p>{item.text}</p>
+              </li>
+            ))}
+            {(extras?.idioms ?? []).map((item: ExtraItem) => (
+              <li>
+                <span class="example-kind">Kiasan</span>
+                <p>{item.text}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {slangForms.length > 0 && (
+        <section class="word-extras" aria-labelledby="slang-title">
+          <div class="word-section-heading">
+            <p class="eyebrow">
+              <span />
+              Bahasa sehari-hari
+            </p>
+            <h2 id="slang-title">Bentuk slang</h2>
+          </div>
+          <p class="slang-note">Dalam percakapan santai, kata ini sering ditulis:</p>
+          <ul class="chip-list">
+            {slangForms.map((form: SlangForm) => (
+              <li>
+                <span class="slang-chip">
+                  <strong>{form.slang}</strong>
+                  {form.categories.length > 0 && <small>{form.categories.join(", ")}</small>}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {slangTargets.length > 0 && (
+            <p class="slang-note">
+              Kata ini juga dipakai sebagai bentuk santai dari{" "}
+              {slangTargets.map((target: SlangTarget, index: number) => (
+                <>
+                  <a href={sitePath(`/kata/${target.slug}/`)}>
+                    <strong>{target.word}</strong>
+                  </a>
+                  {index < slangTargets.length - 1 && ", "}
+                </>
               ))}
-            </ul>
-          </section>
-        )}
-        <nav class="word-neighbors" aria-label="Navigasi entri">
-          {entry.previous ? (
-            <a href={sitePath(`/kata/${entry.previous.slug}/`)}>
-              <small>Sebelumnya</small>
-              <strong>← {entry.previous.word}</strong>
-            </a>
-          ) : (
-            <span />
+              .
+            </p>
           )}
-          {entry.next ? (
-            <a href={sitePath(`/kata/${entry.next.slug}/`)}>
-              <small>Berikutnya</small>
-              <strong>{entry.next.word} →</strong>
-            </a>
-          ) : (
-            <span />
+        </section>
+      )}
+      {rhymes && (rhymes.akhir.words.length > 0 || rhymes.awal.words.length > 0) && (
+        <section class="word-extras" aria-labelledby="rhyme-title">
+          <div class="word-section-heading">
+            <p class="eyebrow">
+              <span />
+              Bunyi yang serupa
+            </p>
+            <h2 id="rhyme-title">Kata berima</h2>
+          </div>
+          {rhymes.akhir.words.length > 0 && (
+            <>
+              <p class="slang-note">
+                Rima akhir{" "}
+                <a href={sitePath(rhymePath("akhir", rhymes.akhir.key))}>
+                  <strong>{rhymeDisplay(rhymes.akhir.key, "akhir")}</strong>
+                </a>{" "}
+                — <a href={sitePath(rhymePath("akhir", rhymes.akhir.key))}>lihat semuanya</a>:
+              </p>
+              <ul class="chip-list">
+                {rhymes.akhir.words.map((word: RhymeWord) => (
+                  <li>
+                    <a href={sitePath(`/kata/${word.slug}/`)}>
+                      <strong>{word.word}</strong>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
-        </nav>
-      </article>
-    ) : (
-      <section class="not-found section-wrap">
-        <>
-          <p class="eyebrow">
-            <span />
-            404
-          </p>
-          <h1>Kata tidak ditemukan.</h1>
-          <p>Slug tersebut tidak memiliki entri.</p>
-          <a class="primary-button" href={sitePath("/search/")}>
-            Kembali ke pencarian
+          {rhymes.awal.words.length > 0 && (
+            <>
+              <p class="slang-note">
+                Rima awal{" "}
+                <a href={sitePath(rhymePath("awal", rhymes.awal.key))}>
+                  <strong>{rhymeDisplay(rhymes.awal.key, "awal")}</strong>
+                </a>{" "}
+                — <a href={sitePath(rhymePath("awal", rhymes.awal.key))}>lihat semuanya</a>:
+              </p>
+              <ul class="chip-list">
+                {rhymes.awal.words.map((word: RhymeWord) => (
+                  <li>
+                    <a href={sitePath(`/kata/${word.slug}/`)}>
+                      <strong>{word.word}</strong>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      )}
+      {related.length > 0 && (
+        <section class="related-words" aria-labelledby="related-title">
+          <div class="word-section-heading">
+            <p class="eyebrow">
+              <span />
+              Relasi kata
+            </p>
+            <h2 id="related-title">Kata terkait</h2>
+          </div>
+          <ul>
+            {related.slice(0, 16).map((item: Related) => (
+              <li>
+                <a href={sitePath(`/kata/${item.slug}/`)}>
+                  <strong>{item.word}</strong>
+                  <small>{item.kind}</small>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      <nav class="word-neighbors" aria-label="Navigasi entri">
+        {entry.previous ? (
+          <a href={sitePath(`/kata/${entry.previous.slug}/`)}>
+            <small>Sebelumnya</small>
+            <strong>← {entry.previous.word}</strong>
           </a>
-        </>
-      </section>
-    )
-  }
+        ) : (
+          <span />
+        )}
+        {entry.next ? (
+          <a href={sitePath(`/kata/${entry.next.slug}/`)}>
+            <small>Berikutnya</small>
+            <strong>{entry.next.word} →</strong>
+          </a>
+        ) : (
+          <span />
+        )}
+      </nav>
+    </article>
+  ) : (
+    <section class="not-found section-wrap">
+      <>
+        <p class="eyebrow">
+          <span />
+          404
+        </p>
+        <h1>Kata tidak ditemukan.</h1>
+        <p>Slug tersebut tidak memiliki entri.</p>
+        <a class="primary-button" href={sitePath("/search/")}>
+          Kembali ke pencarian
+        </a>
+      </>
+    </section>
+  )}
 </BaseLayout>

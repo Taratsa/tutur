@@ -33,19 +33,27 @@ const keyboardRows = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
   >
     <header class="word-game-heading">
       <div>
-        <p class="eyebrow"><span></span>Permainan kata</p>
+        <p class="eyebrow">
+          <span></span>Permainan kata
+        </p>
         <h1 id="word-game-title">Tebak kata.</h1>
         <p>Temukan kata Bahasa Indonesia lima huruf dalam enam percobaan.</p>
       </div>
-      <p class="word-game-progress"><strong id="word-game-attempt">0</strong> / 6</p>
+      <p class="word-game-progress">
+        <strong id="word-game-attempt">0</strong> / 6
+      </p>
     </header>
 
     <div class="word-game-board" aria-hidden="true">
-      {Array.from({ length: 30 }, () => <span class="word-game-cell" />)}
+      {Array.from({ length: 30 }, () => (
+        <span class="word-game-cell" />
+      ))}
     </div>
 
     <form class="word-game-form" id="word-game-form">
-      <label class="sr-only" for="word-game-input">Kata lima huruf</label>
+      <label class="sr-only" for="word-game-input">
+        Kata lima huruf
+      </label>
       <input
         id="word-game-input"
         type="text"
@@ -59,7 +67,9 @@ const keyboardRows = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
         placeholder="Lima huruf"
         required
       />
-      <button type="submit" class="primary-button">Tebak</button>
+      <button type="submit" class="primary-button">
+        Tebak
+      </button>
     </form>
 
     <p id="word-game-status" class="word-game-status" aria-live="polite">
@@ -71,24 +81,28 @@ const keyboardRows = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
     </button>
 
     <div class="word-game-keyboard" aria-label="Papan ketik">
-      {
-        keyboardRows.map((row) => (
-          <div>
-            {row.split("").map((letter) => (
-              <button type="button" data-key={letter} aria-label={`Huruf ${letter.toUpperCase()}`}>
-                {letter}
-              </button>
-            ))}
-          </div>
-        ))
-      }
+      {keyboardRows.map((row) => (
+        <div>
+          {row.split("").map((letter) => (
+            <button type="button" data-key={letter} aria-label={`Huruf ${letter.toUpperCase()}`}>
+              {letter}
+            </button>
+          ))}
+        </div>
+      ))}
       <div>
-        <button type="button" data-key="Backspace" aria-label="Hapus huruf">⌫</button>
-        <button type="button" data-key="Enter">Enter</button>
+        <button type="button" data-key="Backspace" aria-label="Hapus huruf">
+          ⌫
+        </button>
+        <button type="button" data-key="Enter">
+          Enter
+        </button>
       </div>
     </div>
 
-    <noscript><p class="word-game-status">Aktifkan JavaScript untuk memainkan gim.</p></noscript>
+    <noscript>
+      <p class="word-game-status">Aktifkan JavaScript untuk memainkan gim.</p>
+    </noscript>
   </section>
 
   <script>

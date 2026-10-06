@@ -50,16 +50,18 @@ Astro.response.headers.set(
       </div>
       <fieldset class="rhyme-kind-picker">
         <legend class="sr-only">Jenis rima</legend>
-        <label
-          ><input type="radio" name="kind" value="akhir" checked={requestedKind === "akhir"} />Rima
-          akhir</label
-        >
-        <label
-          ><input type="radio" name="kind" value="awal" checked={requestedKind === "awal"} />Rima
-          awal</label
-        >
+        <label>
+          <input type="radio" name="kind" value="akhir" checked={requestedKind === "akhir"} />
+          Rima akhir
+        </label>
+        <label>
+          <input type="radio" name="kind" value="awal" checked={requestedKind === "awal"} />
+          Rima awal
+        </label>
       </fieldset>
-      <button class="primary-button" type="submit">Cari rima</button>
+      <button class="primary-button" type="submit">
+        Cari rima
+      </button>
     </form>
     <p class="search-help">
       “bahasa” → rima akhir <strong>-asa</strong> (rasa, puasa) · “bahasa” → rima awal
@@ -68,38 +70,38 @@ Astro.response.headers.set(
   </section>
   <section class="section-wrap" aria-labelledby="rhyme-akhir-title">
     <div class="word-section-heading">
-      <p class="eyebrow"><span></span>Paling banyak anggota</p>
+      <p class="eyebrow">
+        <span></span>Paling banyak anggota
+      </p>
       <h2 id="rhyme-akhir-title">Rima akhir</h2>
     </div>
     <ul class="chip-list">
-      {
-        akhirGroups.map((group) => (
-          <li>
-            <a href={sitePath(rhymePath("akhir", group.key))}>
-              <strong>{rhymeDisplay(group.key, "akhir")}</strong>
-              <small>{group.total.toLocaleString("id-ID")} kata</small>
-            </a>
-          </li>
-        ))
-      }
+      {akhirGroups.map((group) => (
+        <li>
+          <a href={sitePath(rhymePath("akhir", group.key))}>
+            <strong>{rhymeDisplay(group.key, "akhir")}</strong>
+            <small>{group.total.toLocaleString("id-ID")} kata</small>
+          </a>
+        </li>
+      ))}
     </ul>
   </section>
   <section class="section-wrap" aria-labelledby="rhyme-awal-title">
     <div class="word-section-heading">
-      <p class="eyebrow"><span></span>Paling banyak anggota</p>
+      <p class="eyebrow">
+        <span></span>Paling banyak anggota
+      </p>
       <h2 id="rhyme-awal-title">Rima awal</h2>
     </div>
     <ul class="chip-list">
-      {
-        awalGroups.map((group) => (
-          <li>
-            <a href={sitePath(rhymePath("awal", group.key))}>
-              <strong>{rhymeDisplay(group.key, "awal")}</strong>
-              <small>{group.total.toLocaleString("id-ID")} kata</small>
-            </a>
-          </li>
-        ))
-      }
+      {awalGroups.map((group) => (
+        <li>
+          <a href={sitePath(rhymePath("awal", group.key))}>
+            <strong>{rhymeDisplay(group.key, "awal")}</strong>
+            <small>{group.total.toLocaleString("id-ID")} kata</small>
+          </a>
+        </li>
+      ))}
     </ul>
   </section>
 </BaseLayout>

@@ -34,33 +34,35 @@ Astro.response.headers.set(
 ---
 
 <BaseLayout
-  title={pageData
-    ? `Kata berawalan ${label}, halaman ${pageData.page} | Tutur`
-    : "Daftar kata tidak ditemukan | Tutur"}
-  description={pageData
-    ? `Daftar kata Bahasa Indonesia berawalan ${label}, halaman ${pageData.page}.`
-    : "Daftar kata yang diminta tidak ditemukan."}
+  title={
+    pageData
+      ? `Kata berawalan ${label}, halaman ${pageData.page} | Tutur`
+      : "Daftar kata tidak ditemukan | Tutur"
+  }
+  description={
+    pageData
+      ? `Daftar kata Bahasa Indonesia berawalan ${label}, halaman ${pageData.page}.`
+      : "Daftar kata yang diminta tidak ditemukan."
+  }
   robots={pageData ? "index, follow" : "noindex, follow"}
   canonicalPath={pageData ? `/huruf/${pageData.letter}/${pageData.page}/` : "/404/"}
   currentPath={pageData ? `/huruf/${pageData.letter}/${pageData.page}/` : "/"}
 >
-  {
-    pageData ? (
-      <AlphabetPage pageData={pageData} availableLetters={availableLetters} />
-    ) : (
-      <section class="not-found section-wrap">
-        <>
-          <p class="eyebrow">
-            <span />
-            404
-          </p>
-          <h1>Daftar kata tidak ditemukan.</h1>
-          <p>Huruf atau halaman yang diminta tidak tersedia.</p>
-          <a class="primary-button" href={sitePath("/")}>
-            Kembali ke beranda
-          </a>
-        </>
-      </section>
-    )
-  }
+  {pageData ? (
+    <AlphabetPage pageData={pageData} availableLetters={availableLetters} />
+  ) : (
+    <section class="not-found section-wrap">
+      <>
+        <p class="eyebrow">
+          <span />
+          404
+        </p>
+        <h1>Daftar kata tidak ditemukan.</h1>
+        <p>Huruf atau halaman yang diminta tidak tersedia.</p>
+        <a class="primary-button" href={sitePath("/")}>
+          Kembali ke beranda
+        </a>
+      </>
+    </section>
+  )}
 </BaseLayout>

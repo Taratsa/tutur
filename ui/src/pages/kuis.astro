@@ -46,25 +46,37 @@ const firstQuestion = questions[0];
   >
     <header class="quiz-heading">
       <div>
-        <p class="eyebrow"><span></span>Kuis 01 · Baku & Nonbaku</p>
+        <p class="eyebrow">
+          <span></span>Kuis 01 · Baku & Nonbaku
+        </p>
         <h2 id="quiz-title">Pilih kata baku.</h2>
         <p>Setiap soal menampilkan satu pasangan kata. Pilih bentuk yang sesuai kaidah.</p>
       </div>
       <div class="quiz-progress" aria-label="Kemajuan kuis">
-        <span><strong id="quiz-progress">1 / {questions.length}</strong> soal</span>
-        <span>Skor <strong id="quiz-score">0</strong></span>
+        <span>
+          <strong id="quiz-progress">1 / {questions.length}</strong> soal
+        </span>
+        <span>
+          Skor <strong id="quiz-score">0</strong>
+        </span>
       </div>
     </header>
 
     <div class="quiz-board">
-      <p id="quiz-prompt" class="quiz-prompt">Manakah kata baku?</p>
+      <p id="quiz-prompt" class="quiz-prompt">
+        Manakah kata baku?
+      </p>
       <div class="quiz-definition" hidden>
         <p class="quiz-definition-label">Definisi kata baku</p>
         <p id="quiz-definition">{firstQuestion.definition}</p>
       </div>
       <div class="quiz-options" id="quiz-options" role="group" aria-labelledby="quiz-prompt">
-        <button type="button" class="quiz-option">{firstQuestion.correct}</button>
-        <button type="button" class="quiz-option">{firstQuestion.wrong}</button>
+        <button type="button" class="quiz-option">
+          {firstQuestion.correct}
+        </button>
+        <button type="button" class="quiz-option">
+          {firstQuestion.wrong}
+        </button>
       </div>
       <div id="quiz-feedback" class="quiz-feedback" aria-live="polite" hidden></div>
       <button id="quiz-next" class="primary-button quiz-next" type="button" hidden>
@@ -73,14 +85,12 @@ const firstQuestion = questions[0];
     </div>
 
     <p class="quiz-note">
-      Pasangan kata berasal dari <a href={sitePath("/search/?type=baku")}>koleksi Baku & Nonbaku</a>
-      {" "}Tutur.
+      Pasangan kata berasal dari <a href={sitePath("/search/?type=baku")}>koleksi Baku & Nonbaku</a>{" "}
+      Tutur.
     </p>
-    <noscript
-      ><p class="quiz-noscript">
-        Aktifkan JavaScript untuk memainkan kuis dan menghitung skor.
-      </p></noscript
-    >
+    <noscript>
+      <p class="quiz-noscript">Aktifkan JavaScript untuk memainkan kuis dan menghitung skor.</p>
+    </noscript>
   </section>
 
   <script is:inline>

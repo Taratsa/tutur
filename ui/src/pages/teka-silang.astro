@@ -80,7 +80,9 @@ const firstOpenCell = grid
   >
     <header class="crossword-heading">
       <div>
-        <p class="eyebrow"><span></span>Permainan kata</p>
+        <p class="eyebrow">
+          <span></span>Permainan kata
+        </p>
         <h1 id="crossword-title">Teka silang.</h1>
         <p>Isi semua kotak berdasarkan petunjuk dari kamus Bahasa Indonesia.</p>
       </div>
@@ -99,37 +101,38 @@ const firstOpenCell = grid
           aria-colcount={columns}
           style={`--crossword-columns: ${columns};`}
         >
-          {
-            grid.flatMap((row, rowIndex) =>
-              row.map((letter, columnIndex) => {
-                const key = cellKey(rowIndex, columnIndex);
-                if (!letter) return <span class="crossword-block" aria-hidden="true" />;
-                const number = numberByCell.get(key);
-                return (
-                  <button
-                    type="button"
-                    class="crossword-cell"
-                    data-cell={key}
-                    data-slots={cellSlots.get(key)?.join(",")}
-                    aria-label={`Kotak ${number ? `nomor ${number}, ` : ""}baris ${rowIndex + 1}, kolom ${columnIndex + 1}`}
-                    tabindex={key === firstOpenCell ? 0 : -1}
-                  >
-                    {number && <span class="crossword-number">{number}</span>}
-                    <span class="crossword-letter" />
-                  </button>
-                );
-              }),
-            )
-          }
+          {grid.flatMap((row, rowIndex) =>
+            row.map((letter, columnIndex) => {
+              const key = cellKey(rowIndex, columnIndex);
+              if (!letter) return <span class="crossword-block" aria-hidden="true" />;
+              const number = numberByCell.get(key);
+              return (
+                <button
+                  type="button"
+                  class="crossword-cell"
+                  data-cell={key}
+                  data-slots={cellSlots.get(key)?.join(",")}
+                  aria-label={`Kotak ${number ? `nomor ${number}, ` : ""}baris ${rowIndex + 1}, kolom ${columnIndex + 1}`}
+                  tabindex={key === firstOpenCell ? 0 : -1}
+                >
+                  {number && <span class="crossword-number">{number}</span>}
+                  <span class="crossword-letter" />
+                </button>
+              );
+            }),
+          )}
         </div>
 
         <p id="crossword-status" class="crossword-status" aria-live="polite">
           Pilih kotak lalu ketik huruf. Enter berpindah antara mendatar dan menurun.
         </p>
         <div class="crossword-actions">
-          <button id="crossword-check" type="button" class="primary-button">Periksa jawaban</button>
-          <button id="crossword-reset" type="button" class="crossword-secondary">Mulai ulang</button
-          >
+          <button id="crossword-check" type="button" class="primary-button">
+            Periksa jawaban
+          </button>
+          <button id="crossword-reset" type="button" class="crossword-secondary">
+            Mulai ulang
+          </button>
         </div>
         <p class="crossword-help">
           Gunakan tombol panah untuk berpindah. Klik nomor petunjuk untuk memilih kata.
@@ -137,32 +140,30 @@ const firstOpenCell = grid
       </div>
 
       <aside class="crossword-clues" aria-label="Petunjuk teka silang">
-        {
-          (["across", "down"] as const).map((direction) => (
-            <section>
-              <h2>{direction === "across" ? "Mendatar" : "Menurun"}</h2>
-              <ol>
-                {slots
-                  .filter((slot) => slot.direction === direction)
-                  .sort((left, right) => (left.number ?? 0) - (right.number ?? 0))
-                  .map((slot) => (
-                    <li>
-                      <button type="button" data-clue={slot.id}>
-                        <strong>{slot.number}</strong>
-                        <span>{slot.clue}</span>
-                      </button>
-                    </li>
-                  ))}
-              </ol>
-            </section>
-          ))
-        }
+        {(["across", "down"] as const).map((direction) => (
+          <section>
+            <h2>{direction === "across" ? "Mendatar" : "Menurun"}</h2>
+            <ol>
+              {slots
+                .filter((slot) => slot.direction === direction)
+                .sort((left, right) => (left.number ?? 0) - (right.number ?? 0))
+                .map((slot) => (
+                  <li>
+                    <button type="button" data-clue={slot.id}>
+                      <strong>{slot.number}</strong>
+                      <span>{slot.clue}</span>
+                    </button>
+                  </li>
+                ))}
+            </ol>
+          </section>
+        ))}
       </aside>
     </div>
 
-    <noscript
-      ><p class="crossword-noscript">Aktifkan JavaScript untuk memainkan teka silang.</p></noscript
-    >
+    <noscript>
+      <p class="crossword-noscript">Aktifkan JavaScript untuk memainkan teka silang.</p>
+    </noscript>
   </section>
 
   <script>

@@ -45,7 +45,9 @@ const slug = (topic: (typeof topics)[number]) => topic.id.slice("ejaan/".length)
   <section class="section-wrap eyd-page">
     <nav class="breadcrumbs" aria-label="Breadcrumb">
       <ol>
-        <li><a href={sitePath("/ejaan/")}>Ejaan</a></li>
+        <li>
+          <a href={sitePath("/ejaan/")}>Ejaan</a>
+        </li>
         <li>{sectionLabel}</li>
       </ol>
     </nav>
@@ -53,32 +55,28 @@ const slug = (topic: (typeof topics)[number]) => topic.id.slice("ejaan/".length)
       <Content />
     </article>
     <nav class="word-neighbors eyd-neighbors" aria-label="Navigasi halaman">
-      {
-        previous ? (
-          <a href={sitePath(`/ejaan/${slug(previous)}/`)}>
-            <small>Sebelumnya</small>
-            <strong>{previous.data.title.replaceAll("*", "")}</strong>
-          </a>
-        ) : (
-          <a href={sitePath("/ejaan/")}>
-            <small>Sebelumnya</small>
-            <strong>Daftar isi Ejaan</strong>
-          </a>
-        )
-      }
-      {
-        next ? (
-          <a href={sitePath(`/ejaan/${slug(next)}/`)}>
-            <small>Selanjutnya</small>
-            <strong>{next.data.title.replaceAll("*", "")}</strong>
-          </a>
-        ) : (
-          <a href={sitePath("/ejaan/")}>
-            <small>Selanjutnya</small>
-            <strong>Daftar isi Ejaan</strong>
-          </a>
-        )
-      }
+      {previous ? (
+        <a href={sitePath(`/ejaan/${slug(previous)}/`)}>
+          <small>Sebelumnya</small>
+          <strong>{previous.data.title.replaceAll("*", "")}</strong>
+        </a>
+      ) : (
+        <a href={sitePath("/ejaan/")}>
+          <small>Sebelumnya</small>
+          <strong>Daftar isi Ejaan</strong>
+        </a>
+      )}
+      {next ? (
+        <a href={sitePath(`/ejaan/${slug(next)}/`)}>
+          <small>Selanjutnya</small>
+          <strong>{next.data.title.replaceAll("*", "")}</strong>
+        </a>
+      ) : (
+        <a href={sitePath("/ejaan/")}>
+          <small>Selanjutnya</small>
+          <strong>Daftar isi Ejaan</strong>
+        </a>
+      )}
     </nav>
     <p class="eyd-source">
       Sumber: EYD V — Badan Pengembangan dan Pembinaan Bahasa, Kementerian Pendidikan Dasar dan

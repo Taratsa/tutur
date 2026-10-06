@@ -70,22 +70,20 @@ const sources = [
   />
   <section class="section-wrap sources-section sources-page" aria-label="Daftar sumber data">
     <div class="source-list">
-      {
-        sources.map((source, index) => (
-          <a href={source.url} target="_blank" rel="noreferrer">
-            <>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <strong>{source.name}</strong>
-              <span aria-hidden="true">↗</span>
-            </>
-          </a>
-        ))
-      }
+      {sources.map((source, index) => (
+        <a href={source.url} target="_blank" rel="noreferrer">
+          <>
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            <strong>{source.name}</strong>
+            <span aria-hidden="true">↗</span>
+          </>
+        </a>
+      ))}
       <div class="ai-source">
-        <span>AI</span><p>
-          <strong>Data relasi</strong><small
-            >Baku & Nonbaku, Sinonim, dan Antonim diperkaya dengan AI.</small
-          >
+        <span>AI</span>
+        <p>
+          <strong>Data relasi</strong>
+          <small>Baku & Nonbaku, Sinonim, dan Antonim diperkaya dengan AI.</small>
         </p>
       </div>
     </div>

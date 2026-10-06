@@ -39,22 +39,24 @@ const popular = (data.entries as Entry[])
     description="Peringkat dihitung dari frekuensi kemunculan kata pada korpus teks berukuran lebih dari 110 juta kata (IndoLeX)."
   />
   <section class="section-wrap populer-page" aria-labelledby="populer-title">
-    <p class="eyebrow"><span></span>Peringkat korpus</p>
-    <h2 id="populer-title" class="sr-only">Seratus kata teratas</h2>
+    <p class="eyebrow">
+      <span></span>Peringkat korpus
+    </p>
+    <h2 id="populer-title" class="sr-only">
+      Seratus kata teratas
+    </h2>
     <ol class="populer-list">
-      {
-        popular.map((entry) => (
-          <li>
-            <a href={sitePath(`/kata/${entry.slug}/`)}>
-              <strong>{entry.word}</strong>
-              <small>
-                {formatNumber(entry.frequency ?? 0)}× kemunculan
-                {entry.root && entry.root !== entry.normalizedWord ? ` · akar: ${entry.root}` : ""}
-              </small>
-            </a>
-          </li>
-        ))
-      }
+      {popular.map((entry) => (
+        <li>
+          <a href={sitePath(`/kata/${entry.slug}/`)}>
+            <strong>{entry.word}</strong>
+            <small>
+              {formatNumber(entry.frequency ?? 0)}× kemunculan
+              {entry.root && entry.root !== entry.normalizedWord ? ` · akar: ${entry.root}` : ""}
+            </small>
+          </a>
+        </li>
+      ))}
     </ol>
   </section>
 </BaseLayout>

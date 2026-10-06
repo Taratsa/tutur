@@ -89,19 +89,22 @@ const errors = [
   <section class="section-wrap api-docs">
     <section aria-labelledby="api-start-title">
       <div class="word-section-heading">
-        <p class="eyebrow"><span></span>Memulai</p>
+        <p class="eyebrow">
+          <span></span>Memulai
+        </p>
         <h2 id="api-start-title">Endpoint</h2>
       </div>
       <p>
         Basis URL produksi mengikuti domain situs, sehingga API dapat dipanggil langsung dari domain
-        mana pun (CORS terbuka). Untuk pengembangan lokal, server API berjalan terpisah pada <code
-          >http://localhost:3001</code
-        >.
+        mana pun (CORS terbuka). Untuk pengembangan lokal, server API berjalan terpisah pada{" "}
+        <code>http://localhost:3001</code>.
       </p>
       <ul class="api-endpoints">
         <li>
           <code>GET /health</code>
-          <p>Cek kesehatan layanan. Selalu mengembalikan <code>{'{"status":"ok"}'}</code>.</p>
+          <p>
+            Cek kesehatan layanan. Selalu mengembalikan <code>{'{"status":"ok"}'}</code>.
+          </p>
         </li>
         <li>
           <code>GET /api/search</code>
@@ -112,43 +115,45 @@ const errors = [
 
     <section aria-labelledby="api-params-title">
       <div class="word-section-heading">
-        <p class="eyebrow"><span></span>GET /api/search</p>
+        <p class="eyebrow">
+          <span></span>GET /api/search
+        </p>
         <h2 id="api-params-title">Parameter</h2>
       </div>
       <ul class="api-endpoints">
-        {
-          params.map((param) => (
-            <li>
-              <code>
-                {param.name}
-                {param.required ? "" : " (opsional)"}
-              </code>
-              <p>{param.description}</p>
-            </li>
-          ))
-        }
+        {params.map((param) => (
+          <li>
+            <code>
+              {param.name}
+              {param.required ? "" : " (opsional)"}
+            </code>
+            <p>{param.description}</p>
+          </li>
+        ))}
       </ul>
-      <p>Nilai yang mungkin untuk <code>type</code>:</p>
+      <p>
+        Nilai yang mungkin untuk <code>type</code>:
+      </p>
       <ul class="api-types">
-        {
-          searchTypes.map((item) => (
-            <li>
-              <code>{item.id}</code> <small>{item.label}</small>
-            </li>
-          ))
-        }
+        {searchTypes.map((item) => (
+          <li>
+            <code>{item.id}</code> <small>{item.label}</small>
+          </li>
+        ))}
       </ul>
     </section>
 
     <section aria-labelledby="api-response-title">
       <div class="word-section-heading">
-        <p class="eyebrow"><span></span>Format</p>
+        <p class="eyebrow">
+          <span></span>Format
+        </p>
         <h2 id="api-response-title">Contoh respons</h2>
       </div>
       <pre>{responseExample}</pre>
       <p>
-        Setiap hasil berisi <code>type</code>, <code>word</code>, <code>slug</code>,
-        <code>url</code> (jalur halaman kata di situs ini), dan <code>summary</code>. Hasil tipe
+        Setiap hasil berisi <code>type</code>, <code>word</code>, <code>slug</code>,<code>url</code>{" "}
+        (jalur halaman kata di situs ini), dan <code>summary</code>. Hasil tipe
         <code>baku</code>, <code>sinonim</code>, dan <code>antonim</code> juga memuat
         <code>counterpart</code>.
       </p>
@@ -156,7 +161,9 @@ const errors = [
 
     <section aria-labelledby="api-examples-title">
       <div class="word-section-heading">
-        <p class="eyebrow"><span></span>Cara pakai</p>
+        <p class="eyebrow">
+          <span></span>Cara pakai
+        </p>
         <h2 id="api-examples-title">Contoh permintaan</h2>
       </div>
       <p>Mencari kata berima untuk “bahasa” dengan curl:</p>
@@ -167,7 +174,9 @@ const errors = [
 
     <section aria-labelledby="api-limits-title">
       <div class="word-section-heading">
-        <p class="eyebrow"><span></span>Batas &amp; etika</p>
+        <p class="eyebrow">
+          <span></span>Batas &amp; etika
+        </p>
         <h2 id="api-limits-title">Rate limit, cache, dan galat</h2>
       </div>
       <p>
@@ -178,14 +187,12 @@ const errors = [
         <code>304</code> yang hemat kuota.
       </p>
       <ul class="api-endpoints">
-        {
-          errors.map((item) => (
-            <li>
-              <code>{item.status}</code>
-              <p>{item.meaning}</p>
-            </li>
-          ))
-        }
+        {errors.map((item) => (
+          <li>
+            <code>{item.status}</code>
+            <p>{item.meaning}</p>
+          </li>
+        ))}
       </ul>
       <p class="api-note">
         Data API berasal dari KBBI dan sumber terbuka lain (lihat halaman Sumber data). Layanan ini
