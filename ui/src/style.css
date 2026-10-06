@@ -137,13 +137,13 @@ main {
   letter-spacing: 0.14em;
 }
 
-.desktop-nav {
+.primary-nav {
   display: flex;
   align-self: stretch;
   margin-right: 20px;
 }
 
-.desktop-nav a {
+.primary-nav a {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -156,15 +156,67 @@ main {
   text-decoration: none;
 }
 
-.desktop-nav a:hover,
-.desktop-nav a.active {
+.primary-nav a:hover,
+.primary-nav a.active {
   border-left-color: var(--line);
   background: var(--soft);
   color: var(--ink);
 }
 
-.desktop-nav a.active svg {
-  color: var(--accent);
+/* Tombol hamburger: hanya untuk layar sempit (lihat blok @media 640px). */
+.nav-toggle {
+  display: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.nav-toggle-bars,
+.nav-toggle-bars::before,
+.nav-toggle-bars::after {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+}
+
+.nav-toggle-bars {
+  position: relative;
+}
+
+.nav-toggle-bars::before,
+.nav-toggle-bars::after {
+  position: absolute;
+  left: 0;
+  content: "";
+}
+
+.nav-toggle-bars::before {
+  top: -6px;
+}
+
+.nav-toggle-bars::after {
+  top: 6px;
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle-bars {
+  background: transparent;
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle-bars::before {
+  top: 0;
+  transform: rotate(45deg);
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle-bars::after {
+  top: 0;
+  transform: rotate(-45deg);
 }
 
 .github-button {
@@ -2347,11 +2399,11 @@ main {
     min-height: 66px;
   }
 
-  .desktop-nav {
+  .primary-nav {
     margin-right: 10px;
   }
 
-  .desktop-nav a {
+  .primary-nav a {
     min-height: 66px;
     padding: 0 11px;
   }
@@ -2391,7 +2443,7 @@ main {
   }
 
   .engine-filters,
-  .search-help {
+  .search-engine-hero .search-help {
     grid-column: 1;
   }
 
@@ -2456,8 +2508,40 @@ main {
     padding: 0 16px;
   }
 
-  .desktop-nav {
+  .nav-toggle {
+    display: grid;
+    margin-right: -6px;
+  }
+
+  .primary-nav {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
     display: none;
+    flex-direction: column;
+    align-self: auto;
+    margin: 0;
+    padding: 6px 16px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--canvas);
+    box-shadow: 0 14px 24px rgb(0 0 0 / 8%);
+  }
+
+  .primary-nav[data-open="true"] {
+    display: flex;
+  }
+
+  .primary-nav a {
+    min-height: 46px;
+    padding: 0 12px;
+    border-left: 0;
+    font-size: 13px;
+  }
+
+  .primary-nav a:hover,
+  .primary-nav a.active {
+    background: var(--soft);
   }
 
   .brand > img {
@@ -2585,7 +2669,7 @@ main {
     margin-top: 0;
   }
 
-  .search-help {
+  .search-engine-hero .search-help {
     margin-top: -18px;
   }
 
@@ -3097,6 +3181,8 @@ main {
 
 .rhyme-form .engine-search {
   flex: 1 1 280px;
+  /* Tinggi seragam dengan tombol dan pil rima (baris flex sejajar). */
+  min-height: 46px;
 }
 
 .rhyme-kind-picker {
@@ -3110,7 +3196,8 @@ main {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 11px;
+  min-height: 46px;
+  padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: 3px;
   background: var(--surface);
@@ -3134,6 +3221,11 @@ main {
   .rhyme-form {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  /* Di kolom, flex-basis 280px menjadi tinggi → kotak input melompong. */
+  .rhyme-form .engine-search {
+    flex: none;
   }
 }
 

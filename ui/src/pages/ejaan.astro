@@ -6,6 +6,7 @@ import PageHero from "../components/PageHero.astro";
 export const prerender = true;
 
 const entry = await getEntry("docs", "ejaan");
+if (!entry) throw new Error('Missing content entry "docs/ejaan" (src/content/ejaan.md)');
 const { Content } = await render(entry);
 const { title, eyebrow, description } = entry.data;
 // Frontmatter may carry markdown emphasis; meta tags and the hero need plain text.

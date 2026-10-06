@@ -21,24 +21,22 @@ const canonicalUrl = absoluteRoute(canonicalPath);
 const imageUrl = image ? (/^https?:\/\//u.test(image) ? image : absoluteRoute(image)) : null;
 const homeUrl = absoluteRoute("/");
 const twitterSite = import.meta.env.PUBLIC_TWITTER_SITE || "@taratsa";
-const structuredData =
-  jsonLd ??
-  {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "@id": canonicalUrl,
-    url: canonicalUrl,
-    name: title,
-    description,
+const structuredData = jsonLd ?? {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "@id": canonicalUrl,
+  url: canonicalUrl,
+  name: title,
+  description,
+  inLanguage: "id-ID",
+  isPartOf: {
+    "@type": "WebSite",
+    "@id": `${homeUrl}#website`,
+    url: homeUrl,
+    name: "Tutur",
     inLanguage: "id-ID",
-    isPartOf: {
-      "@type": "WebSite",
-      "@id": `${homeUrl}#website`,
-      url: homeUrl,
-      name: "Tutur",
-      inLanguage: "id-ID",
-    },
-  };
+  },
+};
 const serializedJsonLd = JSON.stringify(structuredData).replaceAll("<", "\\u003c");
 ---
 
@@ -75,28 +73,29 @@ const serializedJsonLd = JSON.stringify(structuredData).replaceAll("<", "\\u003c
     {imageUrl && <meta name="twitter:image:alt" content={imageAlt} />}
     <title>{title}</title>
     <script is:inline type="application/ld+json" set:html={serializedJsonLd} />
-    {
-      import.meta.env.PROD && (
-        <>
-          <script
-            is:inline
-            defer
-            src="https://umami.kenadera.org/script.js"
-            data-website-id="2d61f2c6-008f-4480-8bdb-9ecc6e4da3fb"
-          />
-          <script
-            is:inline
-            defer
-            src="https://umami.kenadera.org/recorder.js"
-            data-website-id="2d61f2c6-008f-4480-8bdb-9ecc6e4da3fb"
-          />
-        </>
-      )
-    }
+    {import.meta.env.PROD && (
+      <>
+        <script
+          is:inline
+          defer
+          src="https://umami.kenadera.org/script.js"
+          data-website-id="2d61f2c6-008f-4480-8bdb-9ecc6e4da3fb"
+          data-performance="true"
+        />
+        <script
+          is:inline
+          defer
+          src="https://umami.kenadera.org/recorder.js"
+          data-website-id="2d61f2c6-008f-4480-8bdb-9ecc6e4da3fb"
+        />
+      </>
+    )}
   </head>
   <body>
     <SiteHeader currentPath={currentPath} />
-    <main><slot /></main>
+    <main>
+      <slot />
+    </main>
     <SiteFooter />
   </body>
 </html>

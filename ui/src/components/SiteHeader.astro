@@ -1,5 +1,4 @@
 ---
-import Icon from "../lib/Icon.svelte";
 import { sitePath } from "../lib/site.js";
 
 const { currentPath = "/" } = Astro.props;
@@ -10,33 +9,90 @@ const isActive = (path: string) =>
 <header class="site-header">
   <a class="brand" href={sitePath("/")}>
     <img src={sitePath("/favicon.png")} alt="" width="36" height="36" />
-    <span><strong>Tutur</strong></span>
+    <span>
+      <strong>Tutur</strong>
+    </span>
   </a>
-  <nav class="desktop-nav" aria-label="Navigasi utama">
+  <button
+    class="nav-toggle"
+    type="button"
+    aria-expanded="false"
+    aria-controls="primary-nav"
+    aria-label="Buka menu navigasi"
+  >
+    <span class="nav-toggle-bars" aria-hidden="true"></span>
+  </button>
+  <nav id="primary-nav" class="primary-nav" aria-label="Navigasi utama" data-open="false">
     <a
       class={isActive("/") ? "active" : undefined}
       aria-current={isActive("/") ? "page" : undefined}
-      href={sitePath("/")}><Icon name="home" size={13} />Beranda</a
+      href={sitePath("/")}
     >
+      Beranda
+    </a>
     <a
       class={isActive("/search/") ? "active" : undefined}
       aria-current={isActive("/search/") ? "page" : undefined}
-      href={sitePath("/search/")}><Icon name="search" size={13} />Pencarian</a
+      href={sitePath("/search/")}
     >
+      Pencarian
+    </a>
     <a
       class={isActive("/kuis/") ? "active" : undefined}
       aria-current={isActive("/kuis/") ? "page" : undefined}
-      href={sitePath("/kuis/")}><Icon name="check" size={13} />Kuis</a
+      href={sitePath("/kuis/")}
     >
+      Kuis
+    </a>
     <a
       class={isActive("/tebak-kata/") ? "active" : undefined}
       aria-current={isActive("/tebak-kata/") ? "page" : undefined}
-      href={sitePath("/tebak-kata/")}><Icon name="comment" size={13} />Tebak kata</a
+      href={sitePath("/tebak-kata/")}
     >
+      Tebak kata
+    </a>
     <a
       class={isActive("/teka-silang/") ? "active" : undefined}
       aria-current={isActive("/teka-silang/") ? "page" : undefined}
-      href={sitePath("/teka-silang/")}><Icon name="table" size={13} />Teka silang</a
+      href={sitePath("/teka-silang/")}
     >
+      Teka silang
+    </a>
   </nav>
 </header>
+
+<script>
+  const toggle = document.querySelector<HTMLButtonElement>(".nav-toggle");
+  const nav = document.querySelector<HTMLElement>("#primary-nav");
+
+  if (toggle && nav) {
+    const setOpen = (open: boolean) => {
+      toggle.setAttribute("aria-expanded", String(open));
+      toggle.setAttribute("aria-label", open ? "Tutup menu navigasi" : "Buka menu navigasi");
+      nav.dataset.open = String(open);
+    };
+
+    document.addEventListener("pointerdown", (event) => {
+      const target = event.target as Element | null;
+      if (
+        toggle.getAttribute("aria-expanded") === "true" &&
+        !target?.closest("#primary-nav, .nav-toggle")
+      ) {
+        setOpen(false);
+      }
+    });
+
+    toggle.addEventListener("click", () =>
+      setOpen(toggle.getAttribute("aria-expanded") !== "true"),
+    );
+    nav.addEventListener("click", (event) => {
+      if ((event.target as Element | null)?.closest("a")) setOpen(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && toggle.getAttribute("aria-expanded") === "true") {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+  }
+</script>
