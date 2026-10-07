@@ -96,7 +96,6 @@ let leipzigWords: LeipzigWord[] = [];
 let sentenceRows: { id: number; text: string }[] = [];
 let sentencePairs: CoPair[] = [];
 let neighbourPairs: CoPair[] = [];
-let corpusAvailable = true;
 try {
   const [wordsFile, sentencesFile, sentenceCoFile, neighbourFile] = await Promise.all([
     readJson<{ leipzig_words: LeipzigWord[] }>("data/leipzig/leipzig_words__JSON.json"),
@@ -116,9 +115,11 @@ try {
   neighbourPairs = neighbourFile.leipzig_neighbour_cooccurrences;
 } catch (error) {
   if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  corpusAvailable = false;
-  console.warn(
-    "WARN data/leipzig tidak ditemukan — jalankan scripts/fetch-leipzig.ts untuk mengisi graf kata.",
+  // Gagal-cepat: tanpa korpus, graf kata kosong dan validate-ssr gagal
+  // jauh kemudian dengan pesan "word page is missing ... JS-disabled content".
+  throw new Error(
+    "data/leipzig/*.json tidak ada — korpus diperlukan untuk membangun graf kata. " +
+      "Jalankan `bun scripts/fetch-leipzig.ts` (unduh ±500 MB, tidak di-commit).",
   );
 }
 
@@ -150,178 +151,175 @@ function pushAgg(bucket: Map<string, Agg>, other: string, pair: CoPair): void {
 const graphs: Record<string, WordGraphData> = {};
 const graphStats = { nodes: 0, edges: 0, examples: 0 };
 
-if (corpusAvailable) {
-  // id korpus -> norm permukaan, lalu -> norm headword (rollup indolex).
-  const wordsById = new Map(leipzigWords.map((word) => [word.id, word]));
-  const normById = new Map<number, string>();
-  const surfaces = new Map<string, { id: number; word: string; frequency: number }>();
-  for (const word of leipzigWords) {
-    const norm = normalizeWord(word.word);
-    if (norm.length < MIN_TOKEN_LENGTH) continue;
-    normById.set(word.id, norm);
-    const existing = surfaces.get(norm);
-    if (!existing) {
-      surfaces.set(norm, { id: word.id, word: word.word, frequency: word.frequency });
-    } else if (word.frequency > existing.frequency) {
-      existing.id = word.id;
-      existing.word = word.word;
-      existing.frequency = word.frequency;
+// id korpus -> norm permukaan, lalu -> norm headword (rollup indolex).
+const wordsById = new Map(leipzigWords.map((word) => [word.id, word]));
+const normById = new Map<number, string>();
+const surfaces = new Map<string, { id: number; word: string; frequency: number }>();
+for (const word of leipzigWords) {
+  const norm = normalizeWord(word.word);
+  if (norm.length < MIN_TOKEN_LENGTH) continue;
+  normById.set(word.id, norm);
+  const existing = surfaces.get(norm);
+  if (!existing) {
+    surfaces.set(norm, { id: word.id, word: word.word, frequency: word.frequency });
+  } else if (word.frequency > existing.frequency) {
+    existing.id = word.id;
+    existing.word = word.word;
+    existing.frequency = word.frequency;
+  }
+}
+
+const coByNorm = new Map<string, Map<string, Agg>>();
+const leftByNorm = new Map<string, Map<string, Agg>>();
+const rightByNorm = new Map<string, Map<string, Agg>>();
+const pairWeight = new Map<string, number>();
+
+for (const pair of sentencePairs) {
+  const leftNorm = normById.get(pair.word1_id);
+  const rightNorm = normById.get(pair.word2_id);
+  if (!leftNorm || !rightNorm) continue;
+  const leftKey = resolve(leftNorm) ?? leftNorm;
+  const rightKey = resolve(rightNorm) ?? rightNorm;
+  if (leftKey.length < MIN_TOKEN_LENGTH || rightKey.length < MIN_TOKEN_LENGTH) continue;
+  if (leftKey === rightKey) continue;
+  pairWeight.set(pairKey(leftKey, rightKey), pair.frequency);
+  pushAgg(bucketOf(coByNorm, leftKey), rightKey, pair);
+  pushAgg(bucketOf(coByNorm, rightKey), leftKey, pair);
+}
+
+for (const pair of neighbourPairs) {
+  const leftNorm = normById.get(pair.word1_id);
+  const rightNorm = normById.get(pair.word2_id);
+  if (!leftNorm || !rightNorm) continue;
+  const leftKey = resolve(leftNorm) ?? leftNorm;
+  const rightKey = resolve(rightNorm) ?? rightNorm;
+  if (leftKey.length < MIN_TOKEN_LENGTH || rightKey.length < MIN_TOKEN_LENGTH) continue;
+  if (leftKey === rightKey) continue;
+  // word1 berada di kiri word2 (format sumber kiri-ke-kanan).
+  pushAgg(bucketOf(rightByNorm, leftKey), rightKey, pair);
+  pushAgg(bucketOf(leftByNorm, rightKey), leftKey, pair);
+}
+
+// Contoh kalimat + hitungan kalimat, diatribusikan ke headword hasil rollup.
+const sentenceCount = new Map<string, number>();
+const sentenceCandidates = new Map<string, string[]>();
+const surfacesPerAnchor = new Map<string, Set<string>>();
+for (const sentence of sentenceRows) {
+  const anchorsInSentence = new Set<string>();
+  for (const token of sentence.text.split(/\s+/u)) {
+    const resolved = resolve(normalizeWord(token));
+    if (!resolved || resolved.length < MIN_TOKEN_LENGTH) continue;
+    anchorsInSentence.add(resolved);
+    if (anchorsInSentence.size > 8) break;
+    const surfaceSet = surfacesPerAnchor.get(resolved);
+    if (surfaceSet && surfaceSet.size < MAX_SURFACES_PER_ANCHOR) {
+      surfaceSet.add(token.toLocaleLowerCase("id-ID"));
     }
   }
-
-  const coByNorm = new Map<string, Map<string, Agg>>();
-  const leftByNorm = new Map<string, Map<string, Agg>>();
-  const rightByNorm = new Map<string, Map<string, Agg>>();
-  const pairWeight = new Map<string, number>();
-
-  for (const pair of sentencePairs) {
-    const leftNorm = normById.get(pair.word1_id);
-    const rightNorm = normById.get(pair.word2_id);
-    if (!leftNorm || !rightNorm) continue;
-    const leftKey = resolve(leftNorm) ?? leftNorm;
-    const rightKey = resolve(rightNorm) ?? rightNorm;
-    if (leftKey.length < MIN_TOKEN_LENGTH || rightKey.length < MIN_TOKEN_LENGTH) continue;
-    if (leftKey === rightKey) continue;
-    pairWeight.set(pairKey(leftKey, rightKey), pair.frequency);
-    pushAgg(bucketOf(coByNorm, leftKey), rightKey, pair);
-    pushAgg(bucketOf(coByNorm, rightKey), leftKey, pair);
-  }
-
-  for (const pair of neighbourPairs) {
-    const leftNorm = normById.get(pair.word1_id);
-    const rightNorm = normById.get(pair.word2_id);
-    if (!leftNorm || !rightNorm) continue;
-    const leftKey = resolve(leftNorm) ?? leftNorm;
-    const rightKey = resolve(rightNorm) ?? rightNorm;
-    if (leftKey.length < MIN_TOKEN_LENGTH || rightKey.length < MIN_TOKEN_LENGTH) continue;
-    if (leftKey === rightKey) continue;
-    // word1 berada di kiri word2 (format sumber kiri-ke-kanan).
-    pushAgg(bucketOf(rightByNorm, leftKey), rightKey, pair);
-    pushAgg(bucketOf(leftByNorm, rightKey), leftKey, pair);
-  }
-
-  // Contoh kalimat + hitungan kalimat, diatribusikan ke headword hasil rollup.
-  const sentenceCount = new Map<string, number>();
-  const sentenceCandidates = new Map<string, string[]>();
-  const surfacesPerAnchor = new Map<string, Set<string>>();
-  for (const sentence of sentenceRows) {
-    const anchorsInSentence = new Set<string>();
-    for (const token of sentence.text.split(/\s+/u)) {
-      const resolved = resolve(normalizeWord(token));
-      if (!resolved || resolved.length < MIN_TOKEN_LENGTH) continue;
-      anchorsInSentence.add(resolved);
-      if (anchorsInSentence.size > 8) break;
-      const surfaceSet = surfacesPerAnchor.get(resolved);
-      if (surfaceSet && surfaceSet.size < MAX_SURFACES_PER_ANCHOR) {
-        surfaceSet.add(token.toLocaleLowerCase("id-ID"));
+  for (const anchor of anchorsInSentence) {
+    sentenceCount.set(anchor, (sentenceCount.get(anchor) ?? 0) + 1);
+    if (sentence.text.length <= MAX_SENTENCE_LENGTH) {
+      const list = sentenceCandidates.get(anchor);
+      if (list) {
+        if (list.length < MAX_SENTENCES * 4) list.push(sentence.text);
+      } else {
+        sentenceCandidates.set(anchor, [sentence.text]);
       }
     }
-    for (const anchor of anchorsInSentence) {
-      sentenceCount.set(anchor, (sentenceCount.get(anchor) ?? 0) + 1);
-      if (sentence.text.length <= MAX_SENTENCE_LENGTH) {
-        const list = sentenceCandidates.get(anchor);
-        if (list) {
-          if (list.length < MAX_SENTENCES * 4) list.push(sentence.text);
-        } else {
-          sentenceCandidates.set(anchor, [sentence.text]);
-        }
-      }
+  }
+}
+
+const corpusSentences = (norm: string, groupSurfaces: Iterable<string>): string[] => {
+  const patternText = [...new Set(groupSurfaces)]
+    .map((surface) => surface.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"))
+    .join("|");
+  const pattern = patternText ? new RegExp(`\\b(${patternText})\\b`, "giu") : null;
+  const candidates = sentenceCandidates.get(norm) ?? [];
+  const unique = new Set<string>();
+  const output: string[] = [];
+  for (const text of candidates) {
+    const marked = pattern ? text.replace(pattern, (match) => `«${match}»`) : text;
+    if (marked === text || unique.has(marked)) continue;
+    unique.add(marked);
+    output.push(marked);
+    if (output.length >= MAX_SENTENCES) break;
+  }
+  return output;
+};
+
+const graphNode = (norm: string, sig: number, freq: number): GraphNode | null => {
+  if (norm.length < MIN_TOKEN_LENGTH) return null;
+  const surface = surfaces.get(norm);
+  return {
+    word: surface?.word ?? norm,
+    id: surface?.id ?? 0,
+    norm,
+    freq: surface?.frequency ?? freq,
+    sig: Number(sig.toFixed(2)),
+    slug: slugByNorm.get(norm) ?? null,
+  };
+};
+
+for (const [norm, bucket] of coByNorm) {
+  const slug = slugByNorm.get(norm);
+  if (!slug) continue;
+  const anchorSurface = surfaces.get(norm);
+  const anchorId = anchorSurface?.id ?? 0;
+
+  const nodes: GraphNode[] = [...bucket.values()]
+    .filter((entry) => entry.other !== norm)
+    .sort(
+      (left, right) => right.significance - left.significance || right.frequency - left.frequency,
+    )
+    .slice(0, MAX_NODES)
+    .map((entry) => graphNode(entry.other, entry.significance, entry.frequency))
+    .filter((node): node is GraphNode => node !== null);
+
+  const chosen = [
+    { id: anchorSurface?.id ?? 0, norm },
+    ...nodes.map((node) => ({ id: node.id, norm: node.norm })),
+  ];
+  const edges: [number, number, number][] = [];
+  for (let i = 0; i < chosen.length; i += 1) {
+    for (let j = i + 1; j < chosen.length; j += 1) {
+      const frequency = pairWeight.get(pairKey(chosen[i]!.norm, chosen[j]!.norm));
+      if (frequency) edges.push([chosen[i]!.id, chosen[j]!.id, frequency]);
     }
   }
+  edges.sort((left, right) => right[2] - left[2]);
 
-  const corpusSentences = (norm: string, groupSurfaces: Iterable<string>): string[] => {
-    const patternText = [...new Set(groupSurfaces)]
-      .map((surface) => surface.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"))
-      .join("|");
-    const pattern = patternText ? new RegExp(`\\b(${patternText})\\b`, "giu") : null;
-    const candidates = sentenceCandidates.get(norm) ?? [];
-    const unique = new Set<string>();
-    const output: string[] = [];
-    for (const text of candidates) {
-      const marked = pattern ? text.replace(pattern, (match) => `«${match}»`) : text;
-      if (marked === text || unique.has(marked)) continue;
-      unique.add(marked);
-      output.push(marked);
-      if (output.length >= MAX_SENTENCES) break;
-    }
-    return output;
-  };
-
-  const graphNode = (norm: string, sig: number, freq: number): GraphNode | null => {
-    if (norm.length < MIN_TOKEN_LENGTH) return null;
-    const surface = surfaces.get(norm);
-    return {
-      word: surface?.word ?? norm,
-      id: surface?.id ?? 0,
-      norm,
-      freq: surface?.frequency ?? freq,
-      sig: Number(sig.toFixed(2)),
-      slug: slugByNorm.get(norm) ?? null,
-    };
-  };
-
-  for (const [norm, bucket] of coByNorm) {
-    const slug = slugByNorm.get(norm);
-    if (!slug) continue;
-    const anchorSurface = surfaces.get(norm);
-    const anchorId = anchorSurface?.id ?? 0;
-
-    const nodes: GraphNode[] = [...bucket.values()]
+  const neighboursFor = (side: "left" | "right"): GraphNode[] =>
+    [...((side === "left" ? leftByNorm : rightByNorm).get(norm)?.values() ?? [])]
       .filter((entry) => entry.other !== norm)
       .sort(
         (left, right) => right.significance - left.significance || right.frequency - left.frequency,
       )
-      .slice(0, MAX_NODES)
+      .slice(0, MAX_NEIGHBOURS)
       .map((entry) => graphNode(entry.other, entry.significance, entry.frequency))
       .filter((node): node is GraphNode => node !== null);
 
-    const chosen = [
-      { id: anchorSurface?.id ?? 0, norm },
-      ...nodes.map((node) => ({ id: node.id, norm: node.norm })),
-    ];
-    const edges: [number, number, number][] = [];
-    for (let i = 0; i < chosen.length; i += 1) {
-      for (let j = i + 1; j < chosen.length; j += 1) {
-        const frequency = pairWeight.get(pairKey(chosen[i]!.norm, chosen[j]!.norm));
-        if (frequency) edges.push([chosen[i]!.id, chosen[j]!.id, frequency]);
-      }
-    }
-    edges.sort((left, right) => right[2] - left[2]);
+  const groupSurfaces = surfacesPerAnchor.get(norm) ?? new Set<string>();
+  if (anchorSurface) groupSurfaces.add(anchorSurface.word.toLocaleLowerCase("id-ID"));
 
-    const neighboursFor = (side: "left" | "right"): GraphNode[] =>
-      [...((side === "left" ? leftByNorm : rightByNorm).get(norm)?.values() ?? [])]
-        .filter((entry) => entry.other !== norm)
-        .sort(
-          (left, right) =>
-            right.significance - left.significance || right.frequency - left.frequency,
-        )
-        .slice(0, MAX_NEIGHBOURS)
-        .map((entry) => graphNode(entry.other, entry.significance, entry.frequency))
-        .filter((node): node is GraphNode => node !== null);
-
-    const groupSurfaces = surfacesPerAnchor.get(norm) ?? new Set<string>();
-    if (anchorSurface) groupSurfaces.add(anchorSurface.word.toLocaleLowerCase("id-ID"));
-
-    graphs[slug] = {
-      word: anchorSurface?.word ?? norm,
-      freq: anchorSurface?.frequency ?? 0,
-      anchorId,
-      sentences: sentenceCount.get(norm) ?? 0,
-      nodes,
-      edges,
-      left: neighboursFor("left"),
-      right: neighboursFor("right"),
-      examples: corpusSentences(norm, groupSurfaces),
-    };
-    graphStats.nodes += nodes.length;
-    graphStats.edges += edges.length;
-    graphStats.examples += graphs[slug]!.examples.length;
-  }
+  graphs[slug] = {
+    word: anchorSurface?.word ?? norm,
+    freq: anchorSurface?.frequency ?? 0,
+    anchorId,
+    sentences: sentenceCount.get(norm) ?? 0,
+    nodes,
+    edges,
+    left: neighboursFor("left"),
+    right: neighboursFor("right"),
+    examples: corpusSentences(norm, groupSurfaces),
+  };
+  graphStats.nodes += nodes.length;
+  graphStats.edges += edges.length;
+  graphStats.examples += graphs[slug]!.examples.length;
 }
 
 const output = {
-  corpus: corpusAvailable ? "ind_mixed_2013" : null,
-  corpusSentences: corpusAvailable ? sentenceRows.length : 0,
+  corpus: "ind_mixed_2013",
+  corpusSentences: sentenceRows.length,
   anchors: Object.keys(graphs).length,
   graphs,
 };
@@ -331,7 +329,6 @@ const text = JSON.stringify(output);
 await writeFile(new URL("word_graph.json", outputDirectory), text);
 console.log(
   `GRAPH_METRICS ${JSON.stringify({
-    corpusAvailable,
     anchors: output.anchors,
     nodes: graphStats.nodes,
     edges: graphStats.edges,

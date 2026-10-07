@@ -58,7 +58,8 @@ produksi.
 Perintah penting:
 
 ```bash
-bun run data:prepare       # normalisasi source JSON → build/data
+bun run data:prepare          # normalisasi source JSON → build/data
+bun scripts/fetch-leipzig.ts 1M  # sekali per mesin: korpus → data/leipzig (~450 MB)
 bun run api:build          # buat api/data/search.sqlite
 bun run ui:build           # build dan validasi UI saja
 bun run build              # build data, SQLite, Astro, dan output checks
@@ -72,6 +73,12 @@ bun run ui:check
 `bun run build` dan `bun run validate:a11y` menjalankan audit axe-core di
 headless Chromium, jadi jalankan sekali `bunx playwright install chromium`
 sebelum pertama kali memakainya.
+
+`bun run build` juga membutuhkan korpus Leipzig di `data/leipzig/` untuk graf
+kata. Berkas korpus tidak di-commit (`.gitignore`), jadi sekali di mesin baru
+jalankan `bun scripts/fetch-leipzig.ts 1M` (unduh ±500 MB; potongan `100K`
+untuk cek cepat). Tanpa korpus, build berhenti di
+`scripts/prepare-word-graph.ts` dengan pesan yang menyebut skrip fetch.
 
 `build/`, `ui/dist/`, dan `api/data/search.sqlite` adalah artefak generated dan
 diabaikan Git. Jangan commit `node_modules` atau output build.
@@ -212,10 +219,10 @@ Astro membuat:
 - sitemap static dan alphabet;
 - beberapa `sitemap-words/*.xml`, masing-masing paling banyak 50.000 URL.
 
-`SITE_URL` wajib diisi dan divalidasi untuk deployment. Set repository variables
-`SITE_URL`, `BASE_PATH` (opsional, default `/`), dan `SEARCH_API_URL` sebelum
-workflow berjalan karena island pencarian tidak boleh
-menebak host produksi.
+`SITE_URL` wajib diisi dan divalidasi untuk deployment, dan `PUBLIC_SEARCH_API_URL`
+wajib benar karena island pencarian tidak boleh menebak host produksi. Keduanya
+diset lewat build arg Docker (lihat `compose.yml`) atau env saat menjalankan
+bundle SSR.
 
 Di VPS, jalankan bundle SSR dan API sebagai proses terpisah, dengan database
 SQLite dipasang read-only:
@@ -230,13 +237,6 @@ Origin mengirim cache bersama tujuh hari untuk `/kata/*` dan satu hari untuk
 Setelah mengganti database, purge URL kata atau prefix `/kata/` agar cache lama
 tidak menunggu TTL. Hentikan dan jalankan ulang proses UI/API setelah swap
 database; koneksi SQLite Bun yang sudah terbuka tidak dipakai lintas swap file.
-
-Workflow `.github/workflows/deploy-pages.yml` dipertahankan sebagai CI/release
-build: workflow melakukan checkout, memasang Bun dengan lockfile, menjalankan
-lint/format/test/type check, membuat database dan SSR bundle, menjalankan
-output validation, lalu mengunggah artefak release. Workflow itu tidak lagi
-mendeploy ke GitHub Pages karena Pages hanya menyajikan file statis; jalankan
-`ui/dist/server/entry.mjs` di VPS di belakang reverse proxy atau Cloudflare.
 
 ### Deployment dengan Docker
 
