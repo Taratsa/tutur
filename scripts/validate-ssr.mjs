@@ -187,7 +187,7 @@ try {
   const v6PageHtml = await v6Page.text();
   if (
     v6Page.status !== 200 ||
-    !/KBBI Edisi VI/u.test(v6PageHtml) ||
+    !/>KBBI VI<\/span>/u.test(v6PageHtml) ||
     !/<ol class="definitions">/u.test(v6PageHtml)
   )
     throw new Error("KBBI VI entry page is missing its VI definitions section");
@@ -205,8 +205,14 @@ try {
   if (ivWithV6) {
     const dualPage = await get(`/kata/${ivWithV6.slug}/`);
     const dualHtml = await dualPage.text();
-    if (dualPage.status !== 200 || !/Arti versi VI/u.test(dualHtml) || !/Definisi/u.test(dualHtml))
-      throw new Error("Dual-edition word page is missing its KBBI VI comparison section");
+    if (
+      dualPage.status !== 200 ||
+      /Arti versi VI/u.test(dualHtml) ||
+      !/Makna bertanda/u.test(dualHtml) ||
+      !/>KBBI VI<\/span>/u.test(dualHtml) ||
+      !/Definisi/u.test(dualHtml)
+    )
+      throw new Error("Dual-edition word page no longer merges VI definitions into one list");
   }
   const rimaLanding = await get("/rima/");
   const rimaLandingHtml = await rimaLanding.text();

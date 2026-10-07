@@ -96,6 +96,7 @@ const exampleHtml = (sentence: string) =>
 const definitions = entry?.definitions ?? [];
 const v6Definitions = entry?.v6Definitions ?? [];
 const isV6Only = definitions.length === 0 && v6Definitions.length > 0;
+const allDefinitions = [...definitions, ...v6Definitions];
 const etymologyRelations = entry?.etymologyRelations ?? [];
 const kaikkiEntries = entry?.kaikkiEntries ?? [];
 const extras = entry?.extras ?? null;
@@ -317,23 +318,48 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
         <section class="word-definitions" aria-labelledby="definitions-title">
           <>
             <div class="word-section-heading">
-              <>
-                <p class="eyebrow">
-                  <span />
-                  {definitions.length > 0 ? "Definisi" : "Definisi · KBBI Edisi VI"}
-                </p>
-                <h2 id="definitions-title">Arti</h2>
-              </>
+              <p class="eyebrow">
+                <span />
+                {isV6Only ? "Definisi · KBBI Edisi VI" : "Definisi"}
+              </p>
+              <h2 id="definitions-title">Arti</h2>
             </div>
+            {(isV6Only || v6Definitions.length > 0) && (
+              <p class="etymology-note">
+                {isV6Only ? (
+                  <>
+                    Definisi berikut berasal dari ekstraksi aplikasi resmi KBBI VI yang
+                    dipublikasikan
+                    <a href="https://github.com/Definisi/kbbi" target="_blank" rel="noreferrer">
+                      Definisi/kbbi
+                    </a>
+                    .
+                  </>
+                ) : (
+                  <>
+                    Makna bertanda <b>KBBI VI</b> berasal dari ekstraksi aplikasi resmi KBBI VI yang
+                    dipublikasikan
+                    <a href="https://github.com/Definisi/kbbi" target="_blank" rel="noreferrer">
+                      Definisi/kbbi
+                    </a>
+                    ; dipakai sebagai pembanding, bukan pengganti KBBI IV.
+                  </>
+                )}
+              </p>
+            )}
             <ol class="definitions">
-              {(definitions.length > 0 ? definitions : v6Definitions).map(
-                (definition: Definition) => (
-                  <li>
-                    <span>{definition.type == null ? "Makna" : `Tipe ${definition.type}`}</span>
-                    <div set:html={definition.html} />
-                  </li>
-                ),
-              )}
+              {allDefinitions.map((definition: Definition) => (
+                <li>
+                  <span>
+                    {definition.edition === "VI"
+                      ? "KBBI VI"
+                      : definition.type == null
+                        ? "Makna"
+                        : `Tipe ${definition.type}`}
+                  </span>
+                  <div set:html={definition.html} />
+                </li>
+              ))}
             </ol>
           </>
         </section>
@@ -361,32 +387,6 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
           </>
         </aside>
       </div>
-      {v6Definitions.length > 0 && definitions.length > 0 && (
-        <section class="word-extras" aria-labelledby="v6-definitions-title">
-          <div class="word-section-heading">
-            <p class="eyebrow">
-              <span />
-              KBBI Edisi VI
-            </p>
-            <h2 id="v6-definitions-title">Arti versi VI</h2>
-          </div>
-          <p class="etymology-note">
-            Definisi berikut berasal dari ekstraksi aplikasi resmi KBBI VI yang dipublikasikan
-            <a href="https://github.com/Definisi/kbbi" target="_blank" rel="noreferrer">
-              Definisi/kbbi
-            </a>
-            ; dipakai sebagai pembanding, bukan pengganti KBBI IV.
-          </p>
-          <ol class="definitions">
-            {v6Definitions.map((definition: Definition) => (
-              <li>
-                <span>Makna</span>
-                <div set:html={definition.html} />
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
       {etymologyRelations.length > 0 && (
         <section class="word-extras" aria-labelledby="etymology-title">
           <div class="word-section-heading">
