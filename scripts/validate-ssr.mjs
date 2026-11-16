@@ -297,9 +297,17 @@ try {
       for (const url of urls) wordSitemapLocations.add(new URL(url).pathname);
   }
   const expectedWordLocations = new Set(data.entries.map((entry) => `${base}/kata/${entry.slug}/`));
+  // Duplikat bersufiks angka ("ppk-skpd-2") sengaja dikeluarkan dari sitemap;
+  // entri dasarnya ("ppk-skpd") wajib tetap ada.
+  const omittedWordLocations = [...expectedWordLocations].filter(
+    (url) => !wordSitemapLocations.has(url),
+  );
   if (
-    wordSitemapLocations.size !== expectedWordLocations.size ||
-    [...expectedWordLocations].some((url) => !wordSitemapLocations.has(url))
+    [...wordSitemapLocations].some((url) => !expectedWordLocations.has(url)) ||
+    omittedWordLocations.some((url) => {
+      const base = /^(.+)-\d+\/$/u.exec(url)?.[1];
+      return !base || !wordSitemapLocations.has(`${base}/`);
+    })
   )
     throw new Error("Word sitemap coverage does not match the SQLite word set");
   console.log(

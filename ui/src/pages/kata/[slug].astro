@@ -1,7 +1,12 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import WordGraph from "../../components/WordGraph.svelte";
-import { getWordPage, getWordGraph, getWordRhymes } from "../../lib/server-data.js";
+import {
+  getCanonicalSlug,
+  getWordPage,
+  getWordGraph,
+  getWordRhymes,
+} from "../../lib/server-data.js";
 import { rhymeDisplay, rhymePath } from "../../lib/rhyme.js";
 import { absoluteRoute, sitePath } from "../../lib/site.js";
 
@@ -229,7 +234,7 @@ if (entry) Astro.response.headers.set("ETag", `"tutur-word-${entry.id}"`);
   title={entry ? `Arti kata ${entry.word} | Tutur` : "Kata tidak ditemukan | Tutur"}
   description={description}
   robots={entry ? "index, follow" : "noindex, follow"}
-  canonicalPath={entry ? `/kata/${entry.slug}/` : "/404/"}
+  canonicalPath={entry ? `/kata/${getCanonicalSlug(entry.slug)}/` : "/404/"}
   image={entry ? `/og/kata/${entry.slug}.png?v=2` : undefined}
   imageAlt={entry ? `Arti kata ${entry.word}` : undefined}
   jsonLd={jsonLd}

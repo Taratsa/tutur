@@ -81,10 +81,44 @@ export function getAvailableLetters() {
   return LETTER_ORDER.filter((letter) => letters[letter]);
 }
 
+// Entri bersufiks angka ("ppk-skpd-2") yang hanya beda tanda hubung dan isinya
+// sama dengan entri dasarnya adalah duplikat: Google memilih kanonik lain, jadi
+// kita arahkan kanoniknya ke entri dasar dan keluarkan dari sitemap.
+let duplicateSlugs;
+
+function getDuplicateSlugs() {
+  if (!duplicateSlugs) {
+    duplicateSlugs = new Map();
+    const bySlug = db().query("SELECT normalized_word, summary FROM entries WHERE slug = ?");
+    const spaced = (value) => value.replaceAll("-", " ");
+    const candidates = db()
+      .query("SELECT slug, normalized_word, summary FROM entries WHERE slug GLOB '*-[0-9]*'")
+      .all();
+    for (const row of candidates) {
+      const base = /^(.+)-\d+$/u.exec(row.slug)?.[1];
+      if (!base) continue;
+      const original = bySlug.get(base);
+      if (
+        original &&
+        original.summary === row.summary &&
+        spaced(original.normalized_word) === spaced(row.normalized_word)
+      )
+        duplicateSlugs.set(row.slug, base);
+    }
+  }
+  return duplicateSlugs;
+}
+
+export function getCanonicalSlug(slug) {
+  return getDuplicateSlugs().get(slug) ?? slug;
+}
+
 export function getWordPaths() {
+  const duplicates = getDuplicateSlugs();
   return db()
     .query("SELECT slug FROM entries ORDER BY normalized_word")
     .all()
+    .filter((row) => !duplicates.has(row.slug))
     .map((row) => `/kata/${row.slug}/`);
 }
 
@@ -343,8 +377,12 @@ function isRhymeKind(kind) {
   return RHYME_KINDS.includes(kind);
 }
 
+// Hanya kunci yang diterima getRhymeGroup() yang boleh ditautkan; selain itu
+// halamannya 404 (mis. singkatan satu huruf).
+const RHYME_KEY_PATTERN = /^[a-z0-9]{2,}$/u;
+
 export function getRhymeGroup(kind, key, page = 1) {
-  if (!isRhymeKind(kind) || !/^[a-z0-9]{2,}$/u.test(key)) return null;
+  if (!isRhymeKind(kind) || !RHYME_KEY_PATTERN.test(key)) return null;
   const total =
     db().query("SELECT COUNT(*) AS count FROM rhyme_keys WHERE kind = ? AND key = ?").get(kind, key)
       ?.count ?? 0;
@@ -383,19 +421,18 @@ export function getPopularRhymeGroups(kind, limit = 24) {
 export function getWordRhymes(normalizedWord, limit = 12) {
   const rhymeQuery =
     "SELECT e.word, e.slug FROM (SELECT entry_id FROM rhyme_keys WHERE kind = ? AND key = ? ORDER BY frequency DESC, entry_id LIMIT ?) AS k JOIN entries AS e ON e.id = k.entry_id WHERE e.normalized_word != ? LIMIT ?";
-  const akhir = {
-    key: rhymeKey(normalizedWord),
-    words: db()
-      .query(rhymeQuery)
-      .all("akhir", rhymeKey(normalizedWord), limit + 2, normalizedWord, limit),
+  const group = (kind, key) => ({
+    key,
+    words: RHYME_KEY_PATTERN.test(key)
+      ? db()
+          .query(rhymeQuery)
+          .all(kind, key, limit + 2, normalizedWord, limit)
+      : [],
+  });
+  return {
+    akhir: group("akhir", rhymeKey(normalizedWord)),
+    awal: group("awal", alliterationKey(normalizedWord)),
   };
-  const awal = {
-    key: alliterationKey(normalizedWord),
-    words: db()
-      .query(rhymeQuery)
-      .all("awal", alliterationKey(normalizedWord), limit + 2, normalizedWord, limit),
-  };
-  return { akhir, awal };
 }
 
 export function getWordGraph(slug) {
