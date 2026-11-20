@@ -59,7 +59,7 @@ Perintah penting:
 
 ```bash
 bun run data:prepare          # normalisasi source JSON → build/data
-bun scripts/fetch-leipzig.ts 1M  # sekali per mesin: korpus → data/leipzig (~450 MB)
+bun scripts/fetch-leipzig.ts 1M  # sekali per mesin: 2 korpus → data/leipzig/<korpus> (~900 MB)
 bun run api:build          # buat api/data/search.sqlite
 bun run ui:build           # build dan validasi UI saja
 bun run build              # build data, SQLite, Astro, dan output checks
@@ -74,10 +74,12 @@ bun run ui:check
 headless Chromium, jadi jalankan sekali `bunx playwright install chromium`
 sebelum pertama kali memakainya.
 
-`bun run build` juga membutuhkan korpus Leipzig di `data/leipzig/` untuk graf
-kata. Berkas korpus tidak di-commit (`.gitignore`), jadi sekali di mesin baru
-jalankan `bun scripts/fetch-leipzig.ts 1M` (unduh ±500 MB; potongan `100K`
-untuk cek cepat). Tanpa korpus, build berhenti di
+`bun run build` juga membutuhkan dua korpus Leipzig (`ind_mixed_2013` dan
+`ind_wikipedia_2016`, daftar di `scripts/leipzig-corpora.ts`) di
+`data/leipzig/<korpus>/` untuk graf kata. Berkas korpus tidak di-commit
+(`.gitignore`), jadi sekali di mesin baru jalankan
+`bun scripts/fetch-leipzig.ts 1M` (unduh ±500 MB per korpus; potongan `100K`
+untuk cek cepat; tambahkan nama korpus untuk mengunduh satu saja). Tanpa korpus, build berhenti di
 `scripts/prepare-word-graph.ts` dengan pesan yang menyebut skrip fetch.
 
 `build/`, `ui/dist/`, dan `api/data/search.sqlite` adalah artefak generated dan
@@ -350,7 +352,7 @@ di repositori ini antara lain:
 12. [raf555 — KBBI-api](https://github.com/raf555/kbbi-api)
 13. [IndoLeX — frekuensi leksikal (Kaggle, CC BY-NC-SA 4.0)](https://www.kaggle.com/datasets/binhashem/indolex-indonesian-academic-lexical-dataset)
 14. [nasalsabila — kamus-alay](https://github.com/nasalsabila/kamus-alay)
-15. [Leipzig Corpora Collection — ind_mixed_2013 (korpus kalimat)](https://downloads.wortschatz-leipzig.de/corpora/ind_mixed_2013_1M.tar.gz)
+15. Leipzig Corpora Collection (korpus kalimat): [ind_mixed_2013](https://downloads.wortschatz-leipzig.de/corpora/ind_mixed_2013_1M.tar.gz) dan [ind_wikipedia_2016](https://downloads.wortschatz-leipzig.de/corpora/ind_wikipedia_2016_1M.tar.gz)
 16. Baku/nonbaku, sinonim, dan antonim pada direktori masing-masing.
 
 Kepemilikan data kamus berada pada **Badan Pengembangan dan Pembinaan Bahasa,

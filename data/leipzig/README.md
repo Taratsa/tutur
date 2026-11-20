@@ -1,9 +1,11 @@
 # Leipzig Corpora Collection
 
-Snapshot korpus bahasa Indonesia `ind_mixed_2013_100K` dalam format JSON
-kanonis. Snapshot ini berisi 100.000 kalimat acak dari korpus campuran
-Indonesia tahun 2013 dan ditujukan sebagai lapisan penggunaan bahasa, bukan
-sebagai kamus definisi.
+Snapshot korpus bahasa Indonesia dalam format JSON kanonis, satu direktori per
+korpus (`ind_mixed_2013/`, `ind_wikipedia_2016/`; daftar di
+`scripts/leipzig-corpora.ts`). Tiap direktori berisi 1.000.000 kalimat dan
+ditujukan sebagai lapisan penggunaan bahasa, bukan sebagai kamus definisi.
+Berkas JSON diunduh dengan `bun scripts/fetch-leipzig.ts 1M` dan tidak
+di-commit. Rincian berkas di bawah mengikuti format yang sama untuk kedua korpus.
 
 ## Berkas
 

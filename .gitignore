@@ -57,4 +57,4 @@ data/kaikki/*
 !data/kaikki/kaikki.org-dictionary-Indonesian.jsonl.gz
 
 ### Korpus Leipzig besar: diambil via scripts/fetch-leipzig.ts, tidak di-commit
-data/leipzig/*.json
+data/leipzig/*/

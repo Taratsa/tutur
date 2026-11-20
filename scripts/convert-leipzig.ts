@@ -1,5 +1,5 @@
 // Konversi arsip korpus Leipzig (format sumber .txt) ke format kanonis JSON
-// yang dipakai pipeline Tutur (data/leipzig/*.json).
+// yang dipakai pipeline Tutur (data/leipzig/<korpus>/*.json).
 //
 // Pakai: bun scripts/convert-leipzig.ts <dir-ekstrak> <corpus-id> [arsip.tar.gz]
 // Contoh: bun scripts/convert-leipzig.ts /tmp/leipzig-1M ind_mixed_2013_1M /tmp/ind_mixed_2013_1M.tar.gz
@@ -16,6 +16,7 @@
 import { readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { LEIPZIG_DOWNLOAD_BASE, corpusBaseId } from "./leipzig-corpora.ts";
 
 const sourceDir = process.argv[2];
 const corpusId = process.argv[3];
@@ -25,7 +26,7 @@ if (!sourceDir || !corpusId) {
   process.exit(1);
 }
 
-const outDir = join(process.cwd(), "data", "leipzig");
+const outDir = join(process.cwd(), "data", "leipzig", corpusBaseId(corpusId));
 await mkdir(outDir, { recursive: true });
 
 function lines(name) {
@@ -33,18 +34,20 @@ function lines(name) {
   return text.split("\n");
 }
 
+// Satu baris data per baris berkas (tetap JSON valid) agar pembaca bisa
+// mengalirkan berkas ratusan MB tanpa memuat seluruh array ke memori.
 async function writeJsonStream(fileName, rootKey, rows, format) {
   const sink = Bun.file(join(outDir, `leipzig_${fileName}__JSON.json`)).writer();
-  await sink.write(`{"${rootKey}":[`);
+  await sink.write(`{"${rootKey}":[\n`);
   let first = true;
   let count = 0;
   for (const row of rows) {
-    if (!first) await sink.write(",");
+    if (!first) await sink.write(",\n");
     first = false;
     await sink.write(format(row));
     count += 1;
   }
-  await sink.write("]}\n");
+  await sink.write("\n]}\n");
   await sink.end();
   console.log(`${rootKey}: ${count}`);
 }
@@ -125,9 +128,9 @@ try {
 }
 const metadata = {
   leipzig_metadata: {
-    corpus_id: corpusId.replace(/^ind_mixed_\d+[KM]$/u, "ind_mixed_2013"),
+    corpus_id: corpusBaseId(corpusId),
     archive: `${corpusId}.tar.gz`,
-    archive_url: `https://downloads.wortschatz-leipzig.de/corpora/${corpusId}.tar.gz`,
+    archive_url: `${LEIPZIG_DOWNLOAD_BASE}/${corpusId}.tar.gz`,
     archive_bytes: archiveBytes,
     build_date: new Date().toISOString().slice(0, 10),
     word_types: wordById.size,
